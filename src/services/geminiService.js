@@ -353,33 +353,47 @@ async function fetchGmailEmails(settings) {
     const searchData = await searchResponse.json();
     const messages = searchData.messages || [];
 
-    // Fetch details for each message
-    const emails = await Promise.all(
-      messages.slice(0, messages.length).map(async (msg) => {
-        const msgUrl = `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`;
-        const msgResponse = await fetch(msgUrl, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+    // Fetch details for each message in batches to avoid rate limiting
+    const BATCH_SIZE = 5; // Process 5 messages at a time
+    const emails = [];
 
-        if (!msgResponse.ok) return null;
+    for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+      const batch = messages.slice(i, i + BATCH_SIZE);
 
-        const msgData = await msgResponse.json();
-        const payload = msgData.payload || {};
-        const headers = payload.headers || [];
+      const batchEmails = await Promise.all(
+        batch.map(async (msg) => {
+          const msgUrl = `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`;
+          const msgResponse = await fetch(msgUrl, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
 
-        const body = extractEmailBody(payload);
+          if (!msgResponse.ok) return null;
 
-        return {
-          from: headers.find(h => h.name === 'From')?.value || 'Unknown',
-          subject: headers.find(h => h.name === 'Subject')?.value || 'No Subject',
-          dateApplied: headers.find(h => h.name === 'Received')?.value || 'Unknown',
-          timeApplied: headers.find(h => h.name === 'Received')?.value || 'Unknown',
-          snippet: msgData.snippet || '',
-          body: body || msgData.snippet || '',
-          dateTime: headers.find(h => h.name === 'Received')?.value || 'Unknown',
-        };
-      })
-    );
+          const msgData = await msgResponse.json();
+          const payload = msgData.payload || {};
+          const headers = payload.headers || [];
+
+          const body = extractEmailBody(payload);
+
+          return {
+            from: headers.find(h => h.name === 'From')?.value || 'Unknown',
+            subject: headers.find(h => h.name === 'Subject')?.value || 'No Subject',
+            dateApplied: headers.find(h => h.name === 'Received')?.value || 'Unknown',
+            timeApplied: headers.find(h => h.name === 'Received')?.value || 'Unknown',
+            snippet: msgData.snippet || '',
+            body: body || msgData.snippet || '',
+            dateTime: headers.find(h => h.name === 'Received')?.value || 'Unknown',
+          };
+        })
+      );
+
+      emails.push(...batchEmails);
+
+      // Small delay between batches to be extra safe with rate limits
+      if (i + BATCH_SIZE < messages.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
 
     return emails.filter(Boolean);
   };
