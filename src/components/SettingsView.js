@@ -52,7 +52,7 @@ function SettingsView({ settings, onUpdate, onClearData }) {
   // Gmail OAuth Flow
   const handleConnectGmail = async () => {
     if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET) {
-      alert('Gmail integration requires OAuth Client ID and Secret in SettingsView.js');
+      alert('Gmail integration requires OAuth Client ID and Secret please check your settings');
       return;
     }
 
