@@ -394,8 +394,8 @@ async function fetchGmailEmails(settings) {
         console.log('Access token expired, attempting refresh...');
         const refreshData = await refreshGmailAccessToken(
           settings.gmailRefreshToken,
-          settings.gmailClientId || process.env.REACT_APP_GOOGLE_CLIENT_ID,
-          settings.gmailClientSecret || process.env.REACT_APP_GOOGLE_CLIENT_SECRET
+          settings.gmailClientId || import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          settings.gmailClientSecret || import.meta.env.VITE_GOOGLE_CLIENT_SECRET
         );
 
         if (refreshData && refreshData.access_token) {
