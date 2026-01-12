@@ -18,8 +18,8 @@ import { exchangeCodeForTokens } from '@/services/geminiService';
 import { Globe } from 'lucide-react';
 
 // Gmail OAuth Configuration
-const GMAIL_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-const GMAIL_CLIENT_SECRET = process.env.REACT_APP_GOOGLE_CLIENT_SECRET;
+const GMAIL_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const GMAIL_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
 const GMAIL_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
 
 /**
