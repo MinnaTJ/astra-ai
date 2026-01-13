@@ -171,6 +171,7 @@ function App() {
     updateJobStatus,
     listJobs,
     findJobByCompany,
+    onSyncGmail: handleSyncGmail,
     applicationsRef
   };
 

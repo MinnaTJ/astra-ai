@@ -29,24 +29,57 @@ function JobDashboard({
 
   // Search and Filter State
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCompany, setSelectedCompany] = useState('All');
-  const [selectedRole, setSelectedRole] = useState('All');
-  const [selectedStatus, setSelectedStatus] = useState('All');
-
-  // Derived filters
-  const companies = ['All', ...new Set(applications.map(job => job.company).filter(Boolean))].sort();
-  const roles = ['All', ...new Set(applications.map(job => job.role).filter(Boolean))].sort();
-  const statuses = ['All', ...new Set(applications.map(job => job.status).filter(Boolean))].sort();
+  const [filterOption, setFilterOption] = useState('all');
 
   const filteredApplications = applications.filter(job => {
+    // Search logic: check company and role
     const matchesSearch =
       (job.company?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (job.role?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    const matchesCompany = selectedCompany === 'All' || job.company === selectedCompany;
-    const matchesRole = selectedRole === 'All' || job.role === selectedRole;
-    const matchesStatus = selectedStatus === 'All' || job.status === selectedStatus;
 
-    return matchesSearch && matchesCompany && matchesRole && matchesStatus;
+    // Filter logic
+    let matchesFilter = true;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const jobDate = job.dateApplied ? new Date(job.dateApplied) : null;
+    if (jobDate) jobDate.setHours(0, 0, 0, 0);
+
+    switch (filterOption) {
+      case 'today':
+        matchesFilter = jobDate && jobDate.getTime() === today.getTime();
+        break;
+      case 'week':
+        if (!jobDate) {
+          matchesFilter = false;
+        } else {
+          const weekAgo = new Date(today);
+          weekAgo.setDate(today.getDate() - 7);
+          matchesFilter = jobDate >= weekAgo;
+        }
+        break;
+      case 'month':
+        if (!jobDate) {
+          matchesFilter = false;
+        } else {
+          const monthAgo = new Date(today);
+          monthAgo.setMonth(today.getMonth() - 1);
+          matchesFilter = jobDate >= monthAgo;
+        }
+        break;
+      case 'Interviewing':
+      case 'Offer':
+      case 'Rejected':
+      case 'Ghosted':
+      case 'Applied':
+        matchesFilter = job.status === filterOption;
+        break;
+      case 'all':
+      default:
+        matchesFilter = true;
+    }
+
+    return matchesSearch && matchesFilter;
   });
 
   const handleOpenAddModal = () => {
@@ -111,7 +144,7 @@ function JobDashboard({
         {/* Search and Filters */}
         <div className="mb-8 space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
+            <div className="flex-[2] relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
@@ -130,67 +163,36 @@ function JobDashboard({
               )}
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-              {/* Company Filter */}
-              <div className="relative min-w-[150px]">
+            <div className="flex flex-1 items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+              <div className="relative flex-1 min-w-[200px]">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <Briefcase size={16} />
+                  <Filter size={18} />
                 </div>
                 <select
-                  value={selectedCompany}
-                  onChange={(e) => setSelectedCompany(e.target.value)}
-                  className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-8 text-white focus:outline-none focus:border-violet-500/50 transition-colors cursor-pointer"
+                  value={filterOption}
+                  onChange={(e) => setFilterOption(e.target.value)}
+                  className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-10 text-white focus:outline-none focus:border-violet-500/50 transition-colors cursor-pointer"
                 >
-                  {companies.map(company => (
-                    <option key={company} value={company} className="bg-gray-900 text-white">
-                      {company === 'All' ? 'All Companies' : company}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <Filter size={14} />
-                </div>
-              </div>
+                  <option value="all" className="bg-gray-900 text-white">All Applications</option>
 
-              {/* Role Filter */}
-              <div className="relative min-w-[150px]">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <Filter size={16} />
-                </div>
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
-                  className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-8 text-white focus:outline-none focus:border-violet-500/50 transition-colors cursor-pointer"
-                >
-                  {roles.map(role => (
-                    <option key={role} value={role} className="bg-gray-900 text-white">
-                      {role === 'All' ? 'All Roles' : role}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <Filter size={14} />
-                </div>
-              </div>
+                  <optgroup label="Date Filters" className="bg-gray-900 text-gray-400 font-normal">
+                    <option value="today" className="bg-gray-900 text-white">Applied Today</option>
+                    <option value="week" className="bg-gray-900 text-white">Applied This Week</option>
+                    <option value="month" className="bg-gray-900 text-white">Applied This Month</option>
+                  </optgroup>
 
-              {/* Status Filter */}
-              <div className="relative min-w-[150px]">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <Loader2 size={16} className={selectedStatus !== 'All' ? 'text-violet-400' : ''} />
-                </div>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full appearance-none bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-8 text-white focus:outline-none focus:border-violet-500/50 transition-colors cursor-pointer"
-                >
-                  {statuses.map(status => (
-                    <option key={status} value={status} className="bg-gray-900 text-white">
-                      {status === 'All' ? 'All Statuses' : status}
-                    </option>
-                  ))}
+                  <optgroup label="Status Filters" className="bg-gray-900 text-gray-400 font-normal">
+                    <option value="Applied" className="bg-gray-900 text-white">Status: Applied</option>
+                    <option value="Interviewing" className="bg-gray-900 text-white">Status: Interviewing</option>
+                    <option value="Offer" className="bg-gray-900 text-white">Status: Offer</option>
+                    <option value="Rejected" className="bg-gray-900 text-white">Status: Rejected</option>
+                    <option value="Ghosted" className="bg-gray-900 text-white">Status: Ghosted</option>
+                  </optgroup>
                 </select>
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                  <Filter size={14} />
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </div>
               </div>
 
@@ -198,11 +200,11 @@ function JobDashboard({
               {applications.some(job => job.status === 'Rejected') && (
                 <button
                   onClick={handleRemoveRejected}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-medium border border-red-500/20 transition-all whitespace-nowrap ml-auto"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-medium border border-red-500/20 transition-all whitespace-nowrap"
                   title="Remove all rejected applications"
                 >
                   <Trash2 size={18} />
-                  <span className="hidden md:inline">Clear Rejected</span>
+                  <span className="hidden lg:inline">Clear Rejected</span>
                 </button>
               )}
             </div>

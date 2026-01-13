@@ -35,7 +35,7 @@ export function useJobApplications() {
     const existingJobIndex = currentApps.findIndex(j =>
       j.company.toLowerCase() === jobData.company.toLowerCase() &&
       j.role.toLowerCase() === jobData.role.toLowerCase() &&
-      j.dateApplied === jobData.dateApplied && 
+      j.dateApplied === jobData.dateApplied &&
       j.timeApplied === jobData.timeApplied &&
       j.status === jobData.status &&
       j.timeApplied === jobData.timeApplied
@@ -105,6 +105,7 @@ export function useJobApplications() {
       j.company.toLowerCase().includes(companyName.toLowerCase())
     );
   }, []);
+
 
   const clearAllJobs = useCallback(() => {
     setApplications([]);

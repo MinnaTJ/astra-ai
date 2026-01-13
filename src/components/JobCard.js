@@ -22,11 +22,10 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
     }
   };
 
-  const formatDateTime = (dateString, timeString) => {
+  const formatDateTime = (dateString) => {
     if (!dateString) return 'Unknown date';
     try {
-      const combined = timeString ? `${dateString}T${timeString}` : dateString;
-      const date = new Date(combined);
+      const date = new Date(dateString);
 
       if (isNaN(date.getTime())) return dateString;
 
@@ -34,9 +33,6 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true,
         timeZone: timezone || undefined
       }).format(date);
     } catch (e) {
@@ -85,7 +81,7 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
         </div>
         <div className="flex items-center gap-3 text-sm text-gray-400">
           <Calendar size={16} />
-          <span>Applied on {formatDateTime(job.dateApplied, job.timeApplied)}</span>
+          <span>Applied on {formatDateTime(job.dateApplied)}</span>
         </div>
         <div className="flex items-center gap-3 text-sm text-gray-400">
           <Link2 size={16} />

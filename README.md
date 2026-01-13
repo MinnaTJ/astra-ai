@@ -29,7 +29,7 @@ A modern, voice-enabled career assistant powered by Google Gemini AI. Track job 
 
 - 🎤 **Voice Chat** - Real-time voice conversations with AI using Gemini Live API
 - 💬 **Text Chat** - Traditional text-based interaction
-- 📊 **Job Tracker** - Track and manage job applications
+- 📊 **Job Tracker** - Track and manage job applications with unified filtering and date-based search
 - 📄 **Resume Lab** - Analyze resume alignment with job descriptions
 - 🔄 **Gmail Sync** - Auto-import job updates from emails (mock)
 - 🎨 **Modern UI** - Glass morphism design with Tailwind CSS
@@ -285,9 +285,13 @@ import { useJobApplications } from '@/hooks';
 ### Job Tracker
 
 1. Navigate to the **Tracker** tab
-2. Click **Add Application** to manually add jobs
-3. Edit or delete jobs using the card buttons
-4. Enable Gmail sync in Settings to auto-import (mock feature)
+2. Use the **widened search bar** to quickly find jobs by company or role
+3. Use the **Unified Filter** dropdown to filter by:
+   - **Date**: Applied Today, This Week, or This Month
+   - **Status**: Applied, Interviewing, Offer, Rejected, or Ghosted
+4. Click **Add Application** to manually add jobs
+5. Edit or delete jobs using the card buttons (time is automatically hidden for a cleaner view)
+6. Enable Gmail sync in Settings to auto-import (mock feature)
 
 ### Resume Lab
 

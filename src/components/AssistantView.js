@@ -31,7 +31,8 @@ function AssistantView({ settingsRef, jobActions }) {
     deleteJobApplication,
     updateJobStatus,
     listJobs,
-    findJobByCompany
+    findJobByCompany,
+    onSyncGmail
   } = jobActions;
 
   // Handle tool calls from voice or text
@@ -49,10 +50,13 @@ function AssistantView({ settingsRef, jobActions }) {
         result = job
           ? deleteJobApplication(job.id)
           : `Could not find a job for ${fc.args.company}.`;
+      } else if (fc.name === 'sync_gmail_emails') {
+        onSyncGmail();
+        result = "Syncing your Gmail for job updates...";
       }
       return result;
     },
-    [saveJobApplication, deleteJobApplication, updateJobStatus, listJobs, findJobByCompany]
+    [saveJobApplication, deleteJobApplication, updateJobStatus, listJobs, findJobByCompany, onSyncGmail]
   );
 
   // Handle voice messages
