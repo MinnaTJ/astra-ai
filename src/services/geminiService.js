@@ -325,6 +325,22 @@ export async function refreshGmailAccessToken(refreshToken, clientId, clientSecr
 }
 
 /**
+ * Fetches user info (name, email) from Google's UserInfo API
+ */
+export async function fetchUserInfo(accessToken) {
+  try {
+    const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error('Fetch user info error:', error);
+    return null;
+  }
+}
+
+/**
  * Fetches emails from Gmail API
  * @param {Object} settings - App settings
  * @returns {Promise<Object>} - Array of emails and potentially a new access token

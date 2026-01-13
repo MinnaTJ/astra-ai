@@ -1,13 +1,14 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { AppTab } from '@/constants';
-import { syncGmailEmails } from '@/services';
+import { syncGmailEmails, fetchUserInfo } from '@/services';
 import { useJobApplications, useSettings } from '@/hooks';
 import {
   Sidebar,
   AssistantView,
   JobDashboard,
   ResumeValidator,
-  SettingsView
+  SettingsView,
+  LoginView
 } from '@/components';
 
 /**
@@ -110,15 +111,47 @@ function App() {
 
   const { settings, settingsRef, updateSettings } = useSettings();
 
+  // Authentication State
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return settings.isGmailConnected;
+  });
+
   // OAuth success handler
-  const handleOAuthSuccess = useCallback((accessToken) => {
+  const handleOAuthSuccess = useCallback(async (data) => {
+    const { tokens, userInfo } = data;
+
+    // If we only have tokens but no userInfo, try to fetch it
+    let fullUserInfo = userInfo;
+    if (!fullUserInfo && tokens?.access_token) {
+      try {
+        const fetched = await fetchUserInfo(tokens.access_token);
+        if (fetched) {
+          fullUserInfo = {
+            name: fetched.name || '',
+            email: fetched.email || ''
+          };
+        }
+      } catch (err) {
+        console.error('Failed to fetch user info in OAuth success:', err);
+      }
+    }
+
+    const detectedTimezone = settingsRef.current.timezone === 'UTC' ? Intl.DateTimeFormat().resolvedOptions().timeZone : settingsRef.current.timezone;
+
     updateSettings({
       ...settingsRef.current,
       isGmailConnected: true,
-      gmailAccessToken: accessToken
+      gmailAccessToken: tokens?.access_token || data.accessToken || '',
+      gmailRefreshToken: tokens?.refresh_token || '',
+      userName: fullUserInfo?.name || settingsRef.current.userName,
+      userEmail: fullUserInfo?.email || settingsRef.current.userEmail,
+      userPicture: fullUserInfo?.picture || settingsRef.current.userPicture,
+      timezone: detectedTimezone
     });
+
+    setIsLoggedIn(true);
     setIsOAuthCallback(false);
-    setActiveTab(AppTab.SETTINGS);
+    setActiveTab(AppTab.ASSISTANT);
   }, [updateSettings, settingsRef]);
 
   // OAuth error handler
@@ -126,8 +159,25 @@ function App() {
     console.error('OAuth error:', error);
     alert('Gmail connection failed: ' + error);
     setIsOAuthCallback(false);
-    setActiveTab(AppTab.SETTINGS);
   }, []);
+
+  // Login success handler (for LoginView)
+  const handleLoginSuccess = useCallback((data) => {
+    const { tokens, userInfo } = data;
+    const detectedTimezone = settingsRef.current.timezone === 'UTC' ? Intl.DateTimeFormat().resolvedOptions().timeZone : settingsRef.current.timezone;
+
+    updateSettings({
+      ...settingsRef.current,
+      isGmailConnected: true,
+      gmailAccessToken: tokens.access_token,
+      gmailRefreshToken: tokens.refresh_token,
+      userName: userInfo?.name || settingsRef.current.userName,
+      userEmail: userInfo?.email || settingsRef.current.userEmail,
+      userPicture: userInfo?.picture || settingsRef.current.userPicture,
+      timezone: detectedTimezone
+    });
+    setIsLoggedIn(true);
+  }, [updateSettings, settingsRef]);
 
   // Gmail sync handler
   const handleSyncGmail = useCallback(async () => {
@@ -175,9 +225,26 @@ function App() {
     applicationsRef
   };
 
+  const handleLogout = useCallback(() => {
+    updateSettings({
+      ...settingsRef.current,
+      isGmailConnected: false,
+      gmailAccessToken: '',
+      gmailRefreshToken: '',
+      userEmail: '',
+      userName: ''
+    });
+    setIsLoggedIn(false);
+  }, [updateSettings, settingsRef]);
+
   // Show OAuth callback handler if processing OAuth
   if (isOAuthCallback) {
     return <OAuthCallback onSuccess={handleOAuthSuccess} onError={handleOAuthError} />;
+  }
+
+  // Show Login View if not logged in
+  if (!isLoggedIn) {
+    return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
@@ -214,6 +281,7 @@ function App() {
             settings={settings}
             onUpdate={updateSettings}
             onClearData={clearAllJobs}
+            onLogout={handleLogout}
           />
         )}
       </main>

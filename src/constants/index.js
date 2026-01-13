@@ -66,10 +66,19 @@ export const Timezones = [
 ];
 
 /**
+ * OAuth Configuration
+ */
+export const OAUTH_CONFIG = {
+  SCOPES: 'openid profile email https://www.googleapis.com/auth/gmail.readonly'
+};
+
+/**
  * Default Settings
  */
 export const DEFAULT_SETTINGS = {
   userName: '',
+  userEmail: '',
+  userPicture: '',
   targetRole: '',
   voiceName: VoiceNames.ZEPHYR,
   conciseness: ConcisenessLevels.NORMAL,

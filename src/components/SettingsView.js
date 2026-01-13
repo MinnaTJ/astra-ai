@@ -13,23 +13,23 @@ import {
   ExternalLink,
   AlertCircle
 } from 'lucide-react';
-import { VoiceNames, ConcisenessLevels, STORAGE_KEYS, Timezones } from '@/constants';
-import { exchangeCodeForTokens } from '@/services/geminiService';
-import { Globe } from 'lucide-react';
+import { VoiceNames, ConcisenessLevels, STORAGE_KEYS, Timezones, OAUTH_CONFIG } from '@/constants';
+import { exchangeCodeForTokens, fetchUserInfo } from '@/services';
+import { Globe, LogOut } from 'lucide-react';
 
 // Gmail OAuth Configuration
 const GMAIL_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const GMAIL_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
-const GMAIL_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
+const GMAIL_SCOPES = OAUTH_CONFIG.SCOPES;
 
 /**
  * Settings management component
  * @param {Object} props - Component props
  * @param {Object} props.settings - Current settings
  * @param {Function} props.onUpdate - Settings update handler
- * @param {Function} props.onClearData - Clear data handler
+ * @param {Function} props.onLogout - Logout handler
  */
-function SettingsView({ settings, onUpdate, onClearData }) {
+function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(settings.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '');
   const [isConnectingGmail, setIsConnectingGmail] = useState(false);
@@ -96,11 +96,16 @@ function SettingsView({ settings, onUpdate, onClearData }) {
                   redirectUri
                 );
 
+                // Fetch user info
+                const userInfo = await fetchUserInfo(tokens.access_token);
+
                 onUpdate({
                   ...settings,
                   isGmailConnected: true,
                   gmailAccessToken: tokens.access_token,
-                  gmailRefreshToken: tokens.refresh_token
+                  gmailRefreshToken: tokens.refresh_token,
+                  userEmail: userInfo?.email || settings.userEmail,
+                  userName: userInfo?.name || settings.userName
                 });
               }
             } catch (err) {
@@ -133,7 +138,9 @@ function SettingsView({ settings, onUpdate, onClearData }) {
     onUpdate({
       ...settings,
       isGmailConnected: false,
-      gmailAccessToken: ''
+      gmailAccessToken: '',
+      gmailRefreshToken: '',
+      userEmail: ''
     });
   };
 
@@ -252,10 +259,22 @@ function SettingsView({ settings, onUpdate, onClearData }) {
 
           {/* Profile Settings */}
           <div className="glass rounded-3xl p-8 border border-white/10 space-y-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <User size={20} className="text-violet-400" />
-              User Profile
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <User size={20} className="text-violet-400" />
+                User Profile
+              </h3>
+              {settings.userEmail && (
+                <div className="flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-none mb-1">Verified Account</span>
+                    <span className="text-xs text-violet-400 font-medium leading-none">
+                      {settings.userEmail}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
@@ -324,7 +343,7 @@ function SettingsView({ settings, onUpdate, onClearData }) {
                     <h4 className="text-sm font-bold text-white">Gmail Account</h4>
                     <p className="text-xs text-gray-500">
                       {settings.isGmailConnected
-                        ? 'Connected - Ready to sync'
+                        ? `Connected: ${settings.userEmail || settings.userName || 'Account'}`
                         : 'Connect to auto-track applications'}
                     </p>
                   </div>
@@ -446,9 +465,16 @@ function SettingsView({ settings, onUpdate, onClearData }) {
                 </p>
                 <button
                   onClick={handleClearData}
-                  className="w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl flex items-center justify-center gap-2 text-sm font-medium text-red-400 transition-all"
+                  className="w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl flex items-center justify-center gap-2 text-sm font-medium text-red-400 transition-all mb-3"
                 >
                   <Trash2 size={16} /> Reset All Data
+                </button>
+
+                <button
+                  onClick={onLogout}
+                  className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-sm font-medium text-white transition-all"
+                >
+                  <LogOut size={16} /> Logout Gmail
                 </button>
               </div>
             </div>

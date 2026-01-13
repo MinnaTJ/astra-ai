@@ -3,6 +3,7 @@ export { default as AssistantView } from './AssistantView';
 export { default as JobDashboard } from './JobDashboard';
 export { default as JobCard } from './JobCard';
 export { default as JobModal } from './JobModal';
+export { default as LoginView } from './LoginView';
 export { default as ResumeValidator } from './ResumeValidator';
 export { default as SettingsView } from './SettingsView';
 export { default as Waveform } from './Waveform';
