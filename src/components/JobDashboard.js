@@ -163,7 +163,7 @@ function JobDashboard({
               )}
             </div>
 
-            <div className="flex flex-1 items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+            <div className="flex flex-1 items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
               <div className="relative flex-1 min-w-[200px]">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                   <Filter size={18} />
