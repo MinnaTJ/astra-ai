@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Mail, Loader2, Sparkles, Briefcase, BarChart3, Search } from 'lucide-react';
 import { exchangeCodeForTokens, fetchUserInfo } from '@/services';
 import { OAUTH_CONFIG } from '@/constants';
