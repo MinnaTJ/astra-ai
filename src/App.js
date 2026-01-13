@@ -250,7 +250,12 @@ function App() {
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden">
       {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        userName={settings.userName}
+        userEmail={settings.userEmail}
+      />
 
       {/* Content Area */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">

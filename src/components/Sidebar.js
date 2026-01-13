@@ -12,8 +12,10 @@ import { AppTab } from '@/constants';
  * @param {Object} props - Component props
  * @param {string} props.activeTab - Currently active tab
  * @param {Function} props.onTabChange - Tab change handler
+ * @param {string} props.userName - User's name
+ * @param {string} props.userEmail - User's email
  */
-function Sidebar({ activeTab, onTabChange }) {
+function Sidebar({ activeTab, onTabChange, userName, userEmail }) {
   const navItems = [
     { id: AppTab.ASSISTANT, icon: MessageSquare, label: 'Assistant' },
     { id: AppTab.DASHBOARD, icon: LayoutDashboard, label: 'Tracker' },
@@ -39,8 +41,8 @@ function Sidebar({ activeTab, onTabChange }) {
             key={id}
             onClick={() => onTabChange(id)}
             className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${activeTab === id
-                ? 'bg-violet-600 text-white glow'
-                : 'text-gray-400 hover:bg-white/5'
+              ? 'bg-violet-600 text-white glow'
+              : 'text-gray-400 hover:bg-white/5'
               }`}
           >
             <Icon size={20} />
@@ -49,18 +51,30 @@ function Sidebar({ activeTab, onTabChange }) {
         ))}
       </div>
 
-      {/* Settings Button */}
-      <div className="px-3">
+      {/* Settings & Profile */}
+      <div className="px-3 space-y-2">
         <button
           onClick={() => onTabChange(AppTab.SETTINGS)}
           className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${activeTab === AppTab.SETTINGS
-              ? 'bg-violet-600 text-white glow'
-              : 'text-gray-400 hover:bg-white/5'
+            ? 'bg-violet-600 text-white glow'
+            : 'text-gray-400 hover:bg-white/5'
             }`}
         >
           <Settings size={20} />
           <span className="font-medium hidden md:block">Settings</span>
         </button>
+
+        {userName && (
+          <div className="hidden md:flex items-center gap-3 px-4 py-4 mt-6 border-t border-white/5">
+            <div className="h-9 w-9 rounded-xl bg-violet-600/20 border border-violet-500/20 flex items-center justify-center text-violet-400 font-bold">
+              {userName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-bold text-white truncate">{userName}</span>
+              <span className="text-[10px] text-gray-500 truncate">{userEmail}</span>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
