@@ -17,6 +17,8 @@ function StatusIcon({ status }) {
   switch (status) {
     case JobStatus.APPLIED:
       return <Clock size={16} className="text-blue-400" />;
+    case JobStatus.ASSESSMENT:
+      return <Clock size={16} className="text-orange-400" />;
     case JobStatus.INTERVIEWING:
       return <Calendar size={16} className="text-yellow-400" />;
     case JobStatus.OFFER:

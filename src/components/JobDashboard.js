@@ -68,6 +68,7 @@ function JobDashboard({
         }
         break;
       case 'Interviewing':
+      case 'Assessment':
       case 'Offer':
       case 'Rejected':
       case 'Ghosted':
@@ -183,6 +184,7 @@ function JobDashboard({
 
                   <optgroup label="Status Filters" className="bg-gray-900 text-gray-400 font-normal">
                     <option value="Applied" className="bg-gray-900 text-white">Status: Applied</option>
+                    <option value="Assessment" className="bg-gray-900 text-white">Status: Assessment</option>
                     <option value="Interviewing" className="bg-gray-900 text-white">Status: Interviewing</option>
                     <option value="Offer" className="bg-gray-900 text-white">Status: Offer</option>
                     <option value="Rejected" className="bg-gray-900 text-white">Status: Rejected</option>

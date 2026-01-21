@@ -50,7 +50,7 @@ export const jobTrackingTools = [
         status: {
           type: Type.STRING,
           description: 'Status',
-          enum: ['Applied', 'Interviewing', 'Rejected', 'Offer', 'Ghosted']
+          enum: ['Applied', 'Assessment', 'Interviewing', 'Rejected', 'Offer', 'Ghosted']
         }
       },
       required: ['company', 'role', 'source', 'dateApplied', 'timeApplied', 'status']
@@ -71,7 +71,7 @@ export const jobTrackingTools = [
         status: {
           type: Type.STRING,
           description: 'The new status',
-          enum: ['Applied', 'Interviewing', 'Rejected', 'Offer', 'Ghosted']
+          enum: ['Applied', 'Assessment', 'Interviewing', 'Rejected', 'Offer', 'Ghosted']
         }
       },
       required: ['company', 'status']
@@ -110,7 +110,7 @@ CORE RESPONSIBILITIES:
 1. Track job applications using the provided tools.
 2. ALWAYS use 'list_job_applications' if the user asks "how many", "what jobs", "status of my search", or any question regarding their existing tracker data.
 3. Use 'save_job_application' when a user mentions applying to a new role OR when processing emails for new apps.
-4. Use 'update_job_status' when a user shares an update OR when emails indicate an interview invitation or rejection.
+4. Use 'update_job_status' when a user shares an update OR when emails indicate an assessment invitation or interview invitation or rejection.
 5. Use 'delete_job_application' only if specifically asked to remove an entry.
 6. Use 'sync_gmail_emails' when the user asks to "sync", "check emails", "refresh inbox", or "update from gmail" or "sync emails" or "sync gmail".
 
@@ -351,7 +351,7 @@ async function fetchGmailEmails(settings) {
 
   const performFetch = async (token) => {
     // Search for job-related emails
-    const query = 'subject:(application OR interview OR offer OR position OR job OR career OR hiring)';
+    const query = 'subject:(application OR assessment OR interview OR offer OR position OR job OR career OR hiring)';
     const searchUrl = `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=50`;
 
     const searchResponse = await fetch(searchUrl, {

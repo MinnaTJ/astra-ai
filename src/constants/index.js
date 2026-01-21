@@ -25,6 +25,7 @@ export const AppTab = {
  */
 export const JobStatus = {
   APPLIED: 'Applied',
+  ASSESSMENT: 'Assessment',
   INTERVIEWING: 'Interviewing',
   REJECTED: 'Rejected',
   OFFER: 'Offer',

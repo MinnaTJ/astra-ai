@@ -13,6 +13,8 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
     switch (status) {
       case 'Offer':
         return 'bg-green-500/20 text-green-400';
+      case 'Assessment':
+        return 'bg-orange-500/20 text-orange-400';
       case 'Interviewing':
         return 'bg-yellow-500/20 text-yellow-400';
       case 'Rejected':

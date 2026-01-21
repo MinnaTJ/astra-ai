@@ -148,6 +148,9 @@ function JobModal({ isOpen, onClose, onSave, editingJob }) {
               <option value={JobStatus.APPLIED} className="bg-gray-900">
                 Applied
               </option>
+              <option value={JobStatus.ASSESSMENT} className="bg-gray-900">
+                Assessment
+              </option>
               <option value={JobStatus.INTERVIEWING} className="bg-gray-900">
                 Interviewing
               </option>

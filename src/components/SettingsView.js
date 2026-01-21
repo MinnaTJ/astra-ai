@@ -374,7 +374,7 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
               )}
 
               <p className="text-[10px] text-gray-500 leading-relaxed italic">
-                * When connected, Astra can scan your inbox to automatically find and track job application emails, interview invitations, and status updates.
+                * When connected, Astra can scan your inbox to automatically find and track job application emails, assessment invitations, interview invitations, and status updates.
               </p>
             </div>
           </div>
