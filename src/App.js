@@ -8,7 +8,8 @@ import {
   JobDashboard,
   ResumeValidator,
   SettingsView,
-  LoginView
+  LoginView,
+  AnimatedBackground
 } from '@/components';
 
 /**
@@ -248,7 +249,10 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden">
+    <div className="flex h-screen text-gray-100 overflow-hidden relative">
+      {/* Animated Background */}
+      <AnimatedBackground />
+
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
@@ -259,9 +263,6 @@ function App() {
 
       {/* Content Area */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Background Gradient */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,_var(--tw-gradient-stops))] from-violet-900/10 via-transparent to-transparent pointer-events-none" />
-
         {/* Tab Content */}
         {activeTab === AppTab.ASSISTANT && (
           <AssistantView settingsRef={settingsRef} jobActions={jobActions} onSyncGmail={handleSyncGmail} />

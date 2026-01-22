@@ -1,4 +1,5 @@
 export { default as Sidebar } from './Sidebar';
+export { default as AnimatedBackground } from './AnimatedBackground';
 export { default as AssistantView } from './AssistantView';
 export { default as JobDashboard } from './JobDashboard';
 export { default as JobCard } from './JobCard';
