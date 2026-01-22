@@ -1,4 +1,4 @@
-import { Calendar, Link2, Trash2, Edit2 } from 'lucide-react';
+import { Calendar, Link2, Trash2, Edit2, Mail } from 'lucide-react';
 import StatusIcon from './StatusIcon';
 
 /**
@@ -89,6 +89,19 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
           <Link2 size={16} />
           <span className="truncate">via {job.source}</span>
         </div>
+        {job.emailLink && (
+          <div className="pt-2">
+            <a
+              href={job.emailLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-xs font-semibold text-violet-400 hover:text-violet-300 transition-colors bg-violet-400/10 py-1.5 px-3 rounded-lg w-fit"
+            >
+              <Mail size={14} />
+              View Original Email
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

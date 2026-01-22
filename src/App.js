@@ -202,7 +202,7 @@ function App() {
           if (fc.name === 'save_job_application') {
             saveJobApplication(fc.args);
           } else if (fc.name === 'update_job_status') {
-            updateJobStatus(fc.args.company, fc.args.status);
+            updateJobStatus(fc.args.company, fc.args.status, fc.args.emailLink);
           }
         }
       }

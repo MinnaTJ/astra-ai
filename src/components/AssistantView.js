@@ -44,7 +44,7 @@ function AssistantView({ settingsRef, jobActions }) {
       } else if (fc.name === 'list_job_applications') {
         result = listJobs();
       } else if (fc.name === 'update_job_status') {
-        result = updateJobStatus(fc.args.company, fc.args.status);
+        result = updateJobStatus(fc.args.company, fc.args.status, fc.args.emailLink);
       } else if (fc.name === 'delete_job_application') {
         const job = findJobByCompany(fc.args.company);
         result = job

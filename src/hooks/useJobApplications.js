@@ -77,13 +77,18 @@ export function useJobApplications() {
     return "I couldn't find that job application in your tracker.";
   }, []);
 
-  const updateJobStatus = useCallback((companyName, newStatus) => {
+  const updateJobStatus = useCallback((companyName, newStatus, emailLink = null) => {
     const job = applicationsRef.current.find((j) =>
       j.company.toLowerCase().includes(companyName.toLowerCase())
     );
     if (job) {
       setApplications((prev) =>
-        prev.map((j) => (j.id === job.id ? { ...j, status: newStatus } : j))
+        prev.map((j) => (j.id === job.id ? {
+          ...j,
+          status: newStatus,
+          // Only update emailLink if one is provided
+          ...(emailLink ? { emailLink } : {})
+        } : j))
       );
       return `I've updated your status for ${job.company} to ${newStatus}.`;
     }

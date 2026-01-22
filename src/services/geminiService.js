@@ -51,7 +51,8 @@ export const jobTrackingTools = [
           type: Type.STRING,
           description: 'Status',
           enum: ['Applied', 'Assessment', 'Interviewing', 'Rejected', 'Offer', 'Ghosted']
-        }
+        },
+        emailLink: { type: Type.STRING, description: 'Direct link to the Gmail message (if applicable)' }
       },
       required: ['company', 'role', 'source', 'dateApplied', 'timeApplied', 'status']
     }
@@ -72,7 +73,8 @@ export const jobTrackingTools = [
           type: Type.STRING,
           description: 'The new status',
           enum: ['Applied', 'Assessment', 'Interviewing', 'Rejected', 'Offer', 'Ghosted']
-        }
+        },
+        emailLink: { type: Type.STRING, description: 'Direct link to the Gmail message (if applicable)' }
       },
       required: ['company', 'status']
     }
@@ -392,6 +394,7 @@ async function fetchGmailEmails(settings) {
           const body = extractEmailBody(payload);
 
           return {
+            id: msg.id,
             from: headers.find(h => h.name === 'From')?.value || 'Unknown',
             subject: headers.find(h => h.name === 'Subject')?.value || 'No Subject',
             dateApplied: headers.find(h => h.name === 'Received')?.value || 'Unknown',
@@ -477,6 +480,12 @@ export async function syncGmailEmails(settings, applications) {
     
     Then process the emails.
     EMAILS: ${JSON.stringify(emails)}
+    
+    INSTRUCTIONS:
+    1. For each email, identify the company, role, status, and application date/time.
+    2. ALWAYS include an 'emailLink' property in your tool calls if extracting from a Gmail email.
+    3. The 'emailLink' should be formatted as: https://mail.google.com/mail/u/0/#inbox/[message_id]
+       where [message_id] is the 'id' field from the email object.
     
     note - dateTime will be in this format - by 2002:a05:6520:50c7:b0:325:7f39:3094 with SMTP id y7csp11383lka;        Thu, 18 Dec 2025 21:32:14 -0800 (PST)
     The time coming from the email can be in PST format thus we need to convert it to UTC.
