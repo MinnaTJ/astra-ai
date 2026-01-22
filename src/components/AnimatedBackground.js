@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * AnimatedBackground Component
  * Renders a set of animated floating orbs to create a dynamic aurora effect
