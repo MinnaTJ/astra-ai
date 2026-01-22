@@ -176,7 +176,7 @@ body {
 }
 
 .animate-pulse-slow {
-  animation: pulse-slow 10s ease-in-out infinite;
+  animation: pulse-slow 5s ease-in-out infinite;
 }
 
 .animate-ping {
