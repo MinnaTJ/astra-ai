@@ -168,47 +168,47 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
   const hasApiKey = settings.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
 
   return (
-    <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-      <div className="max-w-4xl mx-auto pb-20">
-        <header className="mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Settings</h2>
-          <p className="text-gray-400">
-            Personalize your Astra experience and manage your data.
+    <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar">
+      <div className="max-w-4xl mx-auto pb-24 md:pb-20">
+        <header className="mb-6 md:mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Settings</h2>
+          <p className="text-sm md:text-base text-gray-400">
+            Personalize your Astra experience.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* API Key Settings - NEW */}
-          <div className="md:col-span-2 glass rounded-3xl p-8 border border-white/10 space-y-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Key size={20} className="text-yellow-400" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {/* API Key Settings */}
+          <div className="md:col-span-2 glass rounded-3xl p-5 md:p-8 border border-white/10 space-y-4 md:space-y-6">
+            <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+              <Key size={18} className="text-yellow-400" />
               Gemini API Key
             </h3>
 
             {!hasApiKey && (
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-start gap-3">
-                <AlertCircle size={20} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+              <div className="p-3 md:p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex items-start gap-3">
+                <AlertCircle size={18} className="text-yellow-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm text-yellow-200">API key required</p>
-                  <p className="text-xs text-yellow-200/60 mt-1">
-                    You need a Gemini API key to use voice and text chat features.
+                  <p className="text-xs md:text-sm text-yellow-200">API key required</p>
+                  <p className="text-[10px] md:text-xs text-yellow-200/60 mt-0.5 md:mt-1">
+                    Required for AI features.
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-gray-400">
+                <label className="text-xs md:text-sm font-medium text-gray-400">
                   Your Gemini API Key
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <div className="relative flex-1">
                     <input
                       type={showApiKey ? 'text' : 'password'}
                       value={apiKeyInput}
                       onChange={(e) => setApiKeyInput(e.target.value)}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 pr-10 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all text-white font-mono text-sm"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 md:py-2.5 pr-10 outline-none focus:border-violet-500 transition-all text-white font-mono text-xs md:text-sm"
                       placeholder="AIzaSy..."
                     />
                     <button
@@ -216,59 +216,61 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
                       onClick={() => setShowApiKey(!showApiKey)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
                     >
-                      {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  <button
-                    onClick={handleSaveApiKey}
-                    disabled={!apiKeyInput || apiKeyInput === settings.geminiApiKey}
-                    className="px-4 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl font-semibold transition-all"
-                  >
-                    Save
-                  </button>
-                  {settings.geminiApiKey && (
+                  <div className="flex gap-2">
                     <button
-                      onClick={handleClearApiKey}
-                      className="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-semibold transition-all"
+                      onClick={handleSaveApiKey}
+                      disabled={!apiKeyInput || apiKeyInput === settings.geminiApiKey}
+                      className="flex-1 sm:flex-none px-4 py-2 md:py-2.5 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl font-semibold transition-all text-sm"
                     >
-                      Clear
+                      Save
                     </button>
-                  )}
+                    {settings.geminiApiKey && (
+                      <button
+                        onClick={handleClearApiKey}
+                        className="px-4 py-2 md:py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl font-semibold transition-all text-sm"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                  Get your API key from
+                <p className="text-[10px] md:text-xs text-gray-500 mt-2 flex items-center gap-1">
+                  Get it from
                   <a
                     href="https://aistudio.google.com/app/apikey"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-violet-400 hover:text-violet-300 inline-flex items-center gap-1"
                   >
-                    Google AI Studio <ExternalLink size={12} />
+                    Google AI Studio <ExternalLink size={10} />
                   </a>
                 </p>
               </div>
 
               {settings.geminiApiKey && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-2">
-                  <CheckCircle size={16} className="text-green-400" />
-                  <span className="text-sm text-green-400">API key configured</span>
+                <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-2">
+                  <CheckCircle size={14} className="text-green-400" />
+                  <span className="text-xs text-green-400">API key configured</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Profile Settings */}
-          <div className="glass rounded-3xl p-8 border border-white/10 space-y-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <User size={20} className="text-violet-400" />
+          <div className="glass rounded-3xl p-5 md:p-8 border border-white/10 space-y-4 md:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+              <h3 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                <User size={18} className="text-violet-400" />
                 User Profile
               </h3>
               {settings.userEmail && (
-                <div className="flex items-center gap-2 bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
+                <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 self-start sm:self-auto">
                   <div className="flex flex-col items-end">
-                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-none mb-1">Verified Account</span>
-                    <span className="text-xs text-violet-400 font-medium leading-none">
+                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider leading-none mb-1">Account</span>
+                    <span className="text-[10px] md:text-xs text-violet-400 font-medium leading-none truncate max-w-[120px]">
                       {settings.userEmail}
                     </span>
                   </div>

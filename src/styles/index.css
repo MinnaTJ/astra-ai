@@ -6,6 +6,13 @@
 /* Import Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Mobile Specific Styles */
+@media (max-width: 768px) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Base Styles */
 * {
   margin: 0;
@@ -71,8 +78,10 @@ body {
 }
 
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 /* Animation Classes */
@@ -100,6 +109,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -110,6 +120,7 @@ body {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -121,6 +132,7 @@ body {
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -132,6 +144,7 @@ body {
     opacity: 0;
     transform: translateY(16px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -140,6 +153,7 @@ body {
 
 /* Ping Animation */
 @keyframes ping {
+
   75%,
   100% {
     transform: scale(2);
@@ -149,22 +163,51 @@ body {
 
 /* Background Animations */
 @keyframes float {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(10vw, 15vh) scale(1.1); }
-  66% { transform: translate(-5vw, 20vh) scale(0.9); }
-  100% { transform: translate(0, 0) scale(1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(10vw, 15vh) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-5vw, 20vh) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
 }
 
 @keyframes float-reverse {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-15vw, -10vh) scale(0.9); }
-  66% { transform: translate(10vw, -20vh) scale(1.1); }
-  100% { transform: translate(0, 0) scale(1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-15vw, -10vh) scale(0.9);
+  }
+
+  66% {
+    transform: translate(10vw, -20vh) scale(1.1);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
 }
 
 @keyframes pulse-slow {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 0.3; }
+
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .animate-float {
@@ -188,6 +231,7 @@ body {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

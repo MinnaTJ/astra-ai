@@ -10,3 +10,4 @@ export { default as SettingsView } from './SettingsView';
 export { default as Waveform } from './Waveform';
 export { default as TranscriptionLog } from './TranscriptionLog';
 export { default as StatusIcon } from './StatusIcon';
+export { default as MobileNav } from './MobileNav';

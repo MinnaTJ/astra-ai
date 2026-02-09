@@ -9,7 +9,8 @@ import {
   ResumeValidator,
   SettingsView,
   LoginView,
-  AnimatedBackground
+  AnimatedBackground,
+  MobileNav
 } from '@/components';
 
 /**
@@ -259,6 +260,11 @@ function App() {
         onTabChange={setActiveTab}
         userName={settings.userName}
         userEmail={settings.userEmail}
+      />
+
+      <MobileNav
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
       {/* Content Area */}

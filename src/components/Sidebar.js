@@ -23,7 +23,7 @@ function Sidebar({ activeTab, onTabChange, userName, userEmail }) {
   ];
 
   return (
-    <nav className="w-20 md:w-64 border-r border-white/5 glass flex flex-col items-center md:items-stretch py-6 z-20">
+    <nav className="hidden md:flex w-20 md:w-64 border-r border-white/5 glass flex flex-col items-center md:items-stretch py-6 z-20">
       {/* Logo */}
       <div className="px-6 mb-12 flex items-center gap-3">
         <div className="p-2 bg-violet-600 rounded-xl shadow-lg shadow-violet-600/20">

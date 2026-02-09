@@ -116,22 +116,22 @@ function ResumeValidator({ settings }) {
   };
 
   return (
-    <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Resume Lab</h2>
-          <p className="text-gray-400">
-            Validate and tailor your resume against specific job descriptions.
+    <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar">
+      <div className="max-w-4xl mx-auto pb-24 md:pb-20">
+        <header className="mb-6 md:mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Resume Lab</h2>
+          <p className="text-sm md:text-base text-gray-400">
+            Tailor your resume for specific jobs.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mb-8">
           {/* Resume Input Section */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between px-1">
               <label className="text-sm font-semibold text-gray-300 flex items-center gap-2">
                 <FileText size={16} className="text-violet-400" />
-                Resume Input
+                Resume
               </label>
               <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
                 <button
@@ -159,27 +159,27 @@ function ResumeValidator({ settings }) {
               <textarea
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste your resume content here..."
-                className="flex-1 min-h-[300px] glass rounded-2xl p-4 bg-white/5 border border-white/10 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none text-sm resize-none transition-all placeholder:text-gray-600"
+                placeholder="Paste your resume..."
+                className="flex-1 min-h-[200px] md:min-h-[300px] glass rounded-2xl p-4 bg-white/5 border border-white/10 focus:border-violet-500 outline-none text-sm resize-none transition-all placeholder:text-gray-600"
               />
             ) : (
-              <div className="flex-1 min-h-[300px] flex flex-col">
+              <div className="flex-1 min-h-[200px] md:min-h-[300px] flex flex-col">
                 {fileName ? (
                   <div className="flex-1 glass rounded-2xl p-6 border border-violet-500/30 flex flex-col items-center justify-center text-center animate-in zoom-in-95">
-                    <div className="p-4 bg-violet-600/20 rounded-2xl mb-4 text-violet-400">
-                      <FileUp size={48} />
+                    <div className="p-3 md:p-4 bg-violet-600/20 rounded-2xl mb-4 text-violet-400">
+                      <FileUp size={40} className="md:size-[48px]" />
                     </div>
-                    <p className="text-white font-medium mb-1 truncate max-w-full px-4">
+                    <p className="text-white font-medium mb-1 truncate max-w-full px-4 text-sm">
                       {fileName}
                     </p>
-                    <p className="text-xs text-gray-500 mb-6">
-                      Text extracted successfully
+                    <p className="text-[10px] md:text-xs text-gray-500 mb-6">
+                      Extracted
                     </p>
                     <button
                       onClick={resetFile}
                       className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
                     >
-                      <X size={14} /> Remove File
+                      <X size={14} /> Remove
                     </button>
                   </div>
                 ) : (
@@ -191,18 +191,15 @@ function ResumeValidator({ settings }) {
                       accept=".pdf"
                       className="hidden"
                     />
-                    <div className="p-4 bg-white/5 rounded-2xl mb-4 text-gray-500 group-hover:text-violet-400 group-hover:bg-violet-500/5 transition-all">
+                    <div className="p-3 md:p-4 bg-white/5 rounded-2xl mb-4 text-gray-500 group-hover:text-violet-400 group-hover:bg-violet-500/5 transition-all">
                       {isExtracting ? (
-                        <Loader2 size={40} className="animate-spin" />
+                        <Loader2 size={32} className="md:size-[40px] animate-spin" />
                       ) : (
-                        <Upload size={40} />
+                        <Upload size={32} className="md:size-[40px]" />
                       )}
                     </div>
-                    <p className="text-gray-300 font-medium">
-                      {isExtracting ? 'Reading PDF...' : 'Drop your resume PDF here'}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      or click to browse files
+                    <p className="text-gray-300 font-medium text-sm">
+                      {isExtracting ? 'Reading...' : 'Upload PDF'}
                     </p>
                   </label>
                 )}
@@ -214,13 +211,13 @@ function ResumeValidator({ settings }) {
           <div className="flex flex-col gap-3">
             <label className="text-sm font-semibold text-gray-300 flex items-center gap-2 px-1">
               <Search size={16} className="text-blue-400" />
-              Target Job Description
+              Target Job
             </label>
             <textarea
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
-              placeholder="Paste the job requirements or description here..."
-              className="flex-1 min-h-[300px] glass rounded-2xl p-4 bg-white/5 border border-white/10 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none text-sm resize-none transition-all placeholder:text-gray-600"
+              placeholder="Paste job description..."
+              className="flex-1 min-h-[200px] md:min-h-[300px] glass rounded-2xl p-4 bg-white/5 border border-white/10 focus:border-violet-500 outline-none text-sm resize-none transition-all placeholder:text-gray-600"
             />
           </div>
         </div>
@@ -228,16 +225,16 @@ function ResumeValidator({ settings }) {
         <button
           onClick={handleAnalyze}
           disabled={isAnalyzing || !resumeText || !jobDescription || isExtracting}
-          className="w-full py-4 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-600 rounded-2xl font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] glow mb-12 shadow-lg shadow-violet-600/10"
+          className="w-full py-4 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-800 disabled:text-gray-600 rounded-2xl font-bold text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] glow mb-12 shadow-lg shadow-violet-600/10 text-sm md:text-base"
         >
           {isAnalyzing ? (
             <>
-              <Loader2 className="animate-spin" size={20} />
-              Astra is analyzing your match...
+              <Loader2 className="animate-spin" size={18} />
+              Analyzing...
             </>
           ) : (
             <>
-              <Send size={20} />
+              <Send size={18} />
               Validate Alignment
             </>
           )}
@@ -245,19 +242,19 @@ function ResumeValidator({ settings }) {
 
         {error && (
           <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 flex items-start gap-3 mb-8 animate-in slide-in-from-top-2">
-            <AlertCircle size={20} className="mt-0.5 flex-shrink-0" />
-            <p className="text-sm">{error}</p>
+            <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+            <p className="text-xs md:text-sm">{error}</p>
           </div>
         )}
 
         {analysis && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Rating Section */}
-            <div className="glass rounded-3xl p-8 border border-white/10 flex flex-col items-center text-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                <Star size={120} className="text-violet-500" />
+            <div className="glass rounded-3xl p-6 md:p-8 border border-white/10 flex flex-col items-center text-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 md:p-8 opacity-5 md:opacity-10 pointer-events-none">
+                <Star size={80} className="md:size-[120px] text-violet-500" />
               </div>
-              <div className="relative w-32 h-32 flex items-center justify-center mb-4">
+              <div className="relative w-24 h-24 md:w-32 md:h-32 flex items-center justify-center mb-4">
                 <svg
                   viewBox="0 0 128 128"
                   className="absolute inset-0 w-full h-full -rotate-90"
