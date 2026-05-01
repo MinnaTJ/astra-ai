@@ -160,7 +160,7 @@ function AssistantView({ settingsRef, jobActions, messages, setMessages }) {
       ]);
     } catch (err) {
       console.error('Text message error:', err);
-      setError('Text service unavailable. Check your connection.');
+      setError(err.message || 'Text service unavailable. Check your connection.');
     } finally {
       setIsTextThinking(false);
     }
