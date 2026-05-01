@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AppTab, STORAGE_KEYS } from '@/constants';
 import { syncGmailEmails, fetchUserInfo } from '@/services';
 import { useJobApplications, useSettings } from '@/hooks';

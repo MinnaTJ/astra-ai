@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Briefcase, Plus, RefreshCcw, Loader2, Search, Filter, Trash2, X, TrendingUp, Users, BarChart3, Zap } from 'lucide-react';
+import { Briefcase, Plus, RefreshCcw, Loader2, Search, Filter, Trash2, X, TrendingUp, BarChart3, Zap } from 'lucide-react';
 import JobCard from './JobCard';
 import JobModal from './JobModal';
 
