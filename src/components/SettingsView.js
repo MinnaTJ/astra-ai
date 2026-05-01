@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   User,
   Volume2,
   Trash2,
   Download,
+  Upload,
   RefreshCw,
   Mail,
   CheckCircle,
@@ -13,14 +14,9 @@ import {
   ExternalLink,
   AlertCircle
 } from 'lucide-react';
-import { VoiceNames, ConcisenessLevels, STORAGE_KEYS, Timezones, OAUTH_CONFIG } from '@/constants';
-import { exchangeCodeForTokens, fetchUserInfo } from '@/services';
+import { VoiceNames, ConcisenessLevels, STORAGE_KEYS, Timezones } from '@/constants';
+import { useGmailOAuth } from '@/hooks';
 import { Globe, LogOut } from 'lucide-react';
-
-// Gmail OAuth Configuration
-const GMAIL_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const GMAIL_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
-const GMAIL_SCOPES = OAUTH_CONFIG.SCOPES;
 
 /**
  * Settings management component
@@ -32,7 +28,6 @@ const GMAIL_SCOPES = OAUTH_CONFIG.SCOPES;
 function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(settings.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '');
-  const [isConnectingGmail, setIsConnectingGmail] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -48,91 +43,22 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
     onUpdate({ ...settings, geminiApiKey: '' });
   };
 
+  // Gmail OAuth via shared hook
+  const handleGmailSuccess = useCallback(({ tokens, userInfo }) => {
+    onUpdate({
+      ...settings,
+      isGmailConnected: true,
+      gmailAccessToken: tokens.access_token,
+      gmailRefreshToken: tokens.refresh_token,
+      userEmail: userInfo?.email || settings.userEmail,
+      userName: userInfo?.name || settings.userName
+    });
+  }, [settings, onUpdate]);
 
-  // Gmail OAuth Flow
-  const handleConnectGmail = async () => {
-    if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET) {
-      alert('Gmail integration requires OAuth Client ID and Secret please check your settings');
-      return;
-    }
-
-    setIsConnectingGmail(true);
-
-    try {
-      // Create OAuth URL - Use current base URL for GitHub Pages compatibility
-      const redirectUri = window.location.href.split('?')[0].split('#')[0];
-      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      authUrl.searchParams.set('client_id', GMAIL_CLIENT_ID);
-      authUrl.searchParams.set('redirect_uri', redirectUri);
-      authUrl.searchParams.set('response_type', 'code'); // We want a code for exchange
-      authUrl.searchParams.set('access_type', 'offline'); // We want a refresh token
-      authUrl.searchParams.set('scope', GMAIL_SCOPES);
-      authUrl.searchParams.set('prompt', 'consent'); // Ensure refresh token is sent
-
-      // Open OAuth popup
-      window.open(
-        authUrl.toString(),
-        'gmail-oauth',
-        'width=500,height=600,scrollbars=yes'
-      );
-
-      // Listen for OAuth callback
-      const handleMessage = async (event) => {
-        if (event.origin !== window.location.origin) return;
-
-        if (event.data.type === 'gmail-oauth-success' || event.data.type === 'gmail-oauth-error') {
-          // Remove listener IMMEDIATELY so it doesn't run twice
-          window.removeEventListener('message', handleMessage);
-
-          if (event.data.type === 'gmail-oauth-success') {
-            try {
-              const { code } = event.data;
-              if (code) {
-                // Exchange the code for real tokens
-                const tokens = await exchangeCodeForTokens(
-                  code,
-                  GMAIL_CLIENT_ID,
-                  GMAIL_CLIENT_SECRET,
-                  redirectUri
-                );
-
-                // Fetch user info
-                const userInfo = await fetchUserInfo(tokens.access_token);
-
-                onUpdate({
-                  ...settings,
-                  isGmailConnected: true,
-                  gmailAccessToken: tokens.access_token,
-                  gmailRefreshToken: tokens.refresh_token,
-                  userEmail: userInfo?.email || settings.userEmail,
-                  userName: userInfo?.name || settings.userName
-                });
-              }
-            } catch (err) {
-              console.error('Token exchange failed:', err);
-              alert('Gmail connection failed during token exchange.');
-            } finally {
-              setIsConnectingGmail(false);
-            }
-          } else {
-            console.error('Gmail OAuth error:', event.data.error);
-            setIsConnectingGmail(false);
-          }
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
-
-      // Fallback timeout to stop loader if user ignores popup
-      setTimeout(() => {
-        setIsConnectingGmail(false);
-      }, 120000);
-
-    } catch (error) {
-      console.error('Gmail connection error:', error);
-      setIsConnectingGmail(false);
-    }
-  };
+  const { startOAuth: handleConnectGmail, isConnecting: isConnectingGmail } = useGmailOAuth({
+    onSuccess: handleGmailSuccess,
+    onError: (msg) => alert(msg)
+  });
 
   const handleDisconnectGmail = () => {
     onUpdate({
@@ -153,6 +79,41 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
     a.href = url;
     a.download = `astra-career-export-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
+  };
+
+  // Data import
+  const fileInputRef = useRef(null);
+  const importData = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (!Array.isArray(imported)) {
+          alert('Invalid format: expected an array of job applications.');
+          return;
+        }
+        const count = imported.length;
+        if (window.confirm(`Import ${count} job application(s)? This will merge with your existing data.`)) {
+          const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.JOBS) || '[]');
+          // Merge: avoid duplicates by checking id
+          const existingIds = new Set(existing.map(j => j.id));
+          const newJobs = imported.filter(j => !existingIds.has(j.id));
+          const merged = [...existing, ...newJobs];
+          localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(merged));
+          alert(`Imported ${newJobs.length} new application(s). Refresh the page to see changes.`);
+          window.location.reload();
+        }
+      } catch (err) {
+        console.error('Import failed:', err);
+        alert('Failed to import: invalid JSON file.');
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be re-imported
+    event.target.value = '';
   };
 
   const handleClearData = () => {
@@ -457,6 +418,26 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
                   className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all"
                 >
                   <Download size={16} /> Export JSON
+                </button>
+              </div>
+
+              <div className="p-6 bg-white/5 border border-white/5 rounded-2xl">
+                <h4 className="font-semibold text-white mb-2">Import Records</h4>
+                <p className="text-sm text-gray-500 mb-4">
+                  Restore job applications from a previously exported JSON file.
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={importData}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all"
+                >
+                  <Upload size={16} /> Import JSON
                 </button>
               </div>
 

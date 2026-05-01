@@ -10,11 +10,6 @@ import { GoogleGenAI, Modality, Type } from '@google/genai';
  * @param {Object} settings - User settings object
  * @returns {string} - API key
  */
-/**
- * Gets the API key from settings or environment
- * @param {Object} settings - User settings object
- * @returns {string} - API key
- */
 function getApiKey(settings = {}) {
   return settings.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY || '';
 }
@@ -63,20 +58,23 @@ export const jobTrackingTools = [
     parameters: { type: Type.OBJECT, properties: {} }
   },
   {
-    name: 'update_job_status',
+    name: 'update_job_application',
     parameters: {
       type: Type.OBJECT,
-      description: 'Updates the status of a specific job application by company name.',
+      description: 'Updates an existing job application. Only provide the fields that need to change.',
       properties: {
-        company: { type: Type.STRING, description: 'The company name' },
+        company: { type: Type.STRING, description: 'The company name (required to find the job)' },
+        role: { type: Type.STRING, description: 'New job title/role' },
         status: {
           type: Type.STRING,
-          description: 'The new status',
+          description: 'New status',
           enum: ['Applied', 'Assessment', 'Interviewing', 'Rejected', 'Offer', 'Ghosted']
         },
-        emailLink: { type: Type.STRING, description: 'Direct link to the Gmail message (if applicable)' }
+        dateApplied: { type: Type.STRING, description: 'New date applied (YYYY-MM-DD)' },
+        notes: { type: Type.STRING, description: 'New notes for the application' },
+        emailLink: { type: Type.STRING, description: 'New direct link to the Gmail message' }
       },
-      required: ['company', 'status']
+      required: ['company']
     }
   },
   {
@@ -112,36 +110,90 @@ CORE RESPONSIBILITIES:
 1. Track job applications using the provided tools.
 2. ALWAYS use 'list_job_applications' if the user asks "how many", "what jobs", "status of my search", or any question regarding their existing tracker data.
 3. Use 'save_job_application' when a user mentions applying to a new role OR when processing emails for new apps.
-4. Use 'update_job_status' when a user shares an update OR when emails indicate an assessment invitation or interview invitation or rejection.
+4. Use 'update_job_application' to update any field of an existing job (status, role/title, notes, date, etc.).
 5. Use 'delete_job_application' only if specifically asked to remove an entry.
-6. Use 'sync_gmail_emails' when the user asks to "sync", "check emails", "refresh inbox", or "update from gmail" or "sync emails" or "sync gmail".
+6. Use 'sync_gmail_emails' when the user asks to "sync", "check emails", "refresh inbox", or "update from gmail".
 
 TONE: Professional, encouraging, and highly efficient. 
 CONCISENESS: ${settings.conciseness}. If 'Concise', be extremely brief. If 'Detailed', provide more career advice alongside tool actions.`;
 }
 
 /**
- * Sends a text message to Gemini and returns the response
+ * Sends a text message to Gemini and handles tool call loops.
+ * The model may call tools (e.g. list_job_applications), and we send the
+ * tool results back so it can formulate a grounded response.
+ *
  * @param {string} message - User message
  * @param {Object} settings - User settings
- * @returns {Promise<Object>} - AI response with text and function calls
+ * @param {Function} toolExecutor - Async function that executes a tool call and returns its result string
+ * @returns {Promise<Object>} - AI response with text and any side-effect function calls (save/update/delete)
  */
-export async function sendTextMessage(message, settings) {
+export async function sendTextMessage(message, settings, toolExecutor) {
   const ai = createAIClient(settings);
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: message,
-    config: {
-      systemInstruction: getSystemInstruction(settings),
-      tools: [{ functionDeclarations: jobTrackingTools }]
-    }
-  });
+  const tools = [{ functionDeclarations: jobTrackingTools }];
+  const systemInstruction = getSystemInstruction(settings);
 
+  // Build conversation history for multi-turn
+  const contents = [{ role: 'user', parts: [{ text: message }] }];
+
+  // Side-effect tool calls (save/update/delete/sync) that have been executed
+  const sideEffectCalls = [];
+
+  // Tool-call loop: keep going until the model gives a text response
+  const MAX_TOOL_ROUNDS = 5;
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents,
+      config: { systemInstruction, tools }
+    });
+
+    const parts = response.candidates?.[0]?.content?.parts || [];
+    const functionCallParts = parts.filter(p => p.functionCall);
+
+    console.log(`[Astra] Round ${round}: ${functionCallParts.length} tool call(s), text: "${(response.text || '').substring(0, 80)}..."`);
+
+    // If no tool calls, we're done — return the text
+    if (functionCallParts.length === 0) {
+      return {
+        text: response.text || '',
+        functionCalls: sideEffectCalls
+      };
+    }
+
+    // Add the model's response (with tool calls) to conversation
+    contents.push({ role: 'model', parts });
+
+    // Execute each tool call and collect results
+    const toolResultParts = [];
+    for (const part of functionCallParts) {
+      const fc = part.functionCall;
+      const result = await toolExecutor(fc);
+
+      console.log(`[Astra] Tool "${fc.name}" result (${typeof result}, ${String(result).length} chars): "${String(result).substring(0, 120)}..."`);
+
+      // Track side-effect calls (everything except list)
+      if (fc.name !== 'list_job_applications') {
+        sideEffectCalls.push({ functionCall: fc });
+      }
+
+      toolResultParts.push({
+        functionResponse: {
+          name: fc.name,
+          id: fc.id,
+          response: { result: String(result) }
+        }
+      });
+    }
+
+    // Send tool results back to the model with role 'function'
+    contents.push({ role: 'function', parts: toolResultParts });
+  }
+
+  // Fallback if we hit max rounds
   return {
-    text: response.text || '',
-    functionCalls: response.candidates?.[0]?.content?.parts?.filter(
-      (part) => part.functionCall
-    ) || []
+    text: 'I processed your request. Check your dashboard for the latest updates.',
+    functionCalls: sideEffectCalls
   };
 }
 
@@ -212,7 +264,24 @@ export async function analyzeResume(resumeText, jobDescription, settings = {}) {
     model: 'gemini-2.0-flash',
     contents: prompt,
     config: {
-      responseMimeType: 'application/json'
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          rating: { type: Type.NUMBER, description: 'Rating out of 10' },
+          strengths: { type: Type.ARRAY, items: { type: Type.STRING }, description: '3 specific strengths' },
+          gaps: { type: Type.ARRAY, items: { type: Type.STRING }, description: '3 critical gaps' },
+          suggestions: {
+            type: Type.OBJECT,
+            properties: {
+              experience: { type: Type.STRING, description: 'Suggestions for experience section' },
+              skills: { type: Type.STRING, description: 'Suggestions for skills section' }
+            },
+            required: ['experience', 'skills']
+          }
+        },
+        required: ['rating', 'strengths', 'gaps', 'suggestions']
+      }
     }
   });
 
@@ -352,8 +421,10 @@ async function fetchGmailEmails(settings) {
   let newAccessToken = null;
 
   const performFetch = async (token) => {
-    // Search for job-related emails
-    const query = 'subject:(application OR assessment OR interview OR offer OR position OR job OR career OR hiring)';
+    // Search for job-related emails — broad query to catch all variations
+    // Includes: direct keywords, scheduling, recruiter tools, common ATS senders
+    const query = `in:inbox -from:me (subject:(application OR assessment OR interview OR offer OR position OR job OR career OR hiring OR recruiter OR "coding challenge" OR "technical screen" OR "phone screen" OR onboarding OR "next steps" OR "your candidacy" OR "we reviewed" OR "moving forward" OR "schedule" OR "congratulations") OR from:(greenhouse.io OR lever.co OR workday.com OR myworkday.com OR icims.com OR smartrecruiters.com OR ashbyhq.com OR jobs-noreply OR talent OR recruiting OR careers OR hr@))`;
+
     const searchUrl = `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=50`;
 
     const searchResponse = await fetch(searchUrl, {
@@ -380,7 +451,7 @@ async function fetchGmailEmails(settings) {
 
       const batchEmails = await Promise.all(
         batch.map(async (msg) => {
-          const msgUrl = `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`;
+          const msgUrl = `https://www.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`;
           const msgResponse = await fetch(msgUrl, {
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -391,17 +462,13 @@ async function fetchGmailEmails(settings) {
           const payload = msgData.payload || {};
           const headers = payload.headers || [];
 
-          const body = extractEmailBody(payload);
-
+          const rawDate = headers.find(h => h.name === 'Date')?.value || headers.find(h => h.name === 'Received')?.value || 'Unknown';
           return {
             id: msg.id,
             from: headers.find(h => h.name === 'From')?.value || 'Unknown',
             subject: headers.find(h => h.name === 'Subject')?.value || 'No Subject',
-            dateApplied: headers.find(h => h.name === 'Received')?.value || 'Unknown',
-            timeApplied: headers.find(h => h.name === 'Received')?.value || 'Unknown',
-            snippet: msgData.snippet || '',
-            body: body || msgData.snippet || '',
-            dateTime: headers.find(h => h.name === 'Received')?.value || 'Unknown',
+            dateTime: rawDate,
+            snippet: (msgData.snippet || '').substring(0, 250)
           };
         })
       );
@@ -472,11 +539,15 @@ export async function syncGmailEmails(settings, applications) {
     }
   }
 
+  // Send compact summary to save tokens and avoid context limits
+  const appSummary = applications.map(a => `${a.company} | ${a.role} | ${a.status}`).join('\n');
+  
   const ai = createAIClient(settings);
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-pro',
     contents: `Process these emails for job application updates. Use your tools to save or update the tracker.
-    Current Job Applications: ${JSON.stringify(applications)}
+    Current Job Applications (company | role | status):
+    ${appSummary || '(none yet)'}
     
     Then process the emails.
     EMAILS: ${JSON.stringify(emails)}
@@ -487,12 +558,11 @@ export async function syncGmailEmails(settings, applications) {
     3. The 'emailLink' should be formatted as: https://mail.google.com/mail/u/0/#inbox/[message_id]
        where [message_id] is the 'id' field from the email object.
     
-    note - dateTime will be in this format - by 2002:a05:6520:50c7:b0:325:7f39:3094 with SMTP id y7csp11383lka;        Thu, 18 Dec 2025 21:32:14 -0800 (PST)
-    The time coming from the email can be in PST format thus we need to convert it to UTC.
+    note - dateTime will be in standard email Date header format. Convert it to UTC date (YYYY-MM-DD) and time (HH:MM).
     If there is duplicate email discard the older one.
 
     Also make sure its an applied job that we are considering not any suggestions or other emails.
-    check the subject line and body of the email to make sure its an applied job.
+    check the subject line and snippet of the email to make sure its an applied job.
 
     Sometime LinkedIn will send a suggestion email for a job that we have already applied for.
     Make sure to not consider those emails.

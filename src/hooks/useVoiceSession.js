@@ -11,12 +11,20 @@ export function useVoiceSession(options) {
   const { settingsRef, onMessage, onToolCall, onError } = options;
 
   const [state, setState] = useState(AssistantState.IDLE);
+  const stateRef = useRef(state);
+
+  // Keep stateRef in sync to avoid stale closures in callbacks
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // Analyser stored in state so Waveform re-renders when it's created
+  const [analyser, setAnalyser] = useState(null);
 
   // Audio refs
   const inputAudioCtxRef = useRef(null);
   const outputAudioCtxRef = useRef(null);
   const scriptProcessorRef = useRef(null);
-  const analyserRef = useRef(null);
   const sourcesRef = useRef(new Set());
   const nextStartTimeRef = useRef(0);
 
@@ -67,9 +75,9 @@ export function useVoiceSession(options) {
       if (outputCtx.state === 'suspended') await outputCtx.resume();
 
       // Create analyser for waveform visualization
-      const analyser = outputCtx.createAnalyser();
-      analyser.fftSize = AUDIO_CONFIG.FFT_SIZE;
-      analyserRef.current = analyser;
+      const newAnalyser = outputCtx.createAnalyser();
+      newAnalyser.fftSize = AUDIO_CONFIG.FFT_SIZE;
+      setAnalyser(newAnalyser);
 
       // Get microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -99,36 +107,63 @@ export function useVoiceSession(options) {
             source.connect(scriptProcessor);
             scriptProcessor.connect(inputCtx.destination);
           },
-          onmessage: async (message) => {
-            // Handle tool calls
-            if (message.toolCall) {
-              for (const fc of message.toolCall.functionCalls) {
-                const result = onToolCall(fc);
-                if (result) {
-                  sessionPromise.then((session) => {
-                    session.sendToolResponse({
-                      functionResponses: {
-                        id: fc.id,
-                        name: fc.name,
-                        response: { result }
-                      }
-                    });
-                  });
-                }
-              }
-            }
+           onmessage: async (message) => {
+             // Handle tool calls
+             if (message.toolCall) {
+               console.log(`[Astra Voice] Received ${message.toolCall.functionCalls.length} tool call(s)`);
+               setState(AssistantState.THINKING);
+               
+               const toolResponses = [];
+               for (const fc of message.toolCall.functionCalls) {
+                 // Await the async tool executor
+                 const result = await onToolCall(fc);
+                 
+                 console.log(`[Astra Voice] Tool "${fc.name}" result: "${String(result).substring(0, 100)}..."`);
+                 
+                 toolResponses.push({
+                   id: fc.id,
+                   name: fc.name,
+                   response: { result: String(result) }
+                 });
+               }
 
-            // Handle transcriptions
+               if (toolResponses.length > 0) {
+                 sessionPromise.then((session) => {
+                   if (session) {
+                     session.sendToolResponse({
+                       functionResponses: toolResponses
+                     });
+                   }
+                 });
+               }
+             }
+
+             // Handle transcriptions
             if (message.serverContent?.outputTranscription) {
               currentOutputTranscription.current +=
                 message.serverContent.outputTranscription.text;
             } else if (message.serverContent?.inputTranscription) {
+              // User is speaking, ensure we are in LISTENING state
+              if (stateRef.current !== AssistantState.LISTENING && stateRef.current !== AssistantState.CONNECTING) {
+                setState(AssistantState.LISTENING);
+              }
               currentInputTranscription.current +=
                 message.serverContent.inputTranscription.text;
+
+              // Reset silence timeout to detect when user stops speaking
+              if (window.silenceTimeout) clearTimeout(window.silenceTimeout);
+              window.silenceTimeout = setTimeout(() => {
+                if (stateRef.current === AssistantState.LISTENING) {
+                  setState(AssistantState.THINKING);
+                }
+              }, 1500);
             }
 
             // Handle turn complete
             if (message.serverContent?.turnComplete) {
+              // User has finished speaking, Astra is now "thinking" about the response
+              setState(AssistantState.THINKING);
+              
               const userText = currentInputTranscription.current.trim();
               const assistantText = currentOutputTranscription.current.trim();
               if (userText || assistantText) {
@@ -156,8 +191,8 @@ export function useVoiceSession(options) {
               );
               const audioSource = outputCtx.createBufferSource();
               audioSource.buffer = audioBuffer;
-              audioSource.connect(analyser);
-              analyser.connect(outputCtx.destination);
+              audioSource.connect(newAnalyser);
+              newAnalyser.connect(outputCtx.destination);
 
               audioSource.addEventListener('ended', () => {
                 sourcesRef.current.delete(audioSource);
@@ -181,10 +216,11 @@ export function useVoiceSession(options) {
           onerror: (e) => {
             console.error('Live Error:', e);
             onError('Connection interrupted. Please refresh or check your API key.');
+            stateRef.current = AssistantState.ERROR;
             setState(AssistantState.ERROR);
           },
           onclose: () => {
-            if (state !== AssistantState.ERROR) {
+            if (stateRef.current !== AssistantState.ERROR) {
               setState(AssistantState.IDLE);
             }
           }
@@ -215,6 +251,10 @@ export function useVoiceSession(options) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (window.silenceTimeout) {
+      clearTimeout(window.silenceTimeout);
+      window.silenceTimeout = null;
+    }
     stopAllAudio();
     setState(AssistantState.IDLE);
   }, [stopAllAudio]);
@@ -229,7 +269,7 @@ export function useVoiceSession(options) {
   return {
     state,
     setState,
-    analyser: analyserRef.current,
+    analyser,
     startSession,
     stopSession
   };

@@ -1,4 +1,5 @@
-import { Calendar, Link2, Trash2, Edit2, Mail } from 'lucide-react';
+import React from 'react';
+import { Calendar, Link2, Trash2, Edit2, Mail, StickyNote } from 'lucide-react';
 import StatusIcon from './StatusIcon';
 
 /**
@@ -44,7 +45,6 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
 
   return (
     <div className="glass rounded-2xl p-5 border border-white/5 hover:border-violet-500/30 transition-all group animate-in fade-in zoom-in-95 duration-300">
-      {/* ... existing header code ... */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-bold text-white group-hover:text-violet-400 transition-colors truncate leading-tight" title={job.role}>
@@ -57,12 +57,18 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
         <div className="flex gap-1 ml-2">
           <button
             onClick={() => onEdit(job)}
+            aria-label={`Edit ${job.role} at ${job.company}`}
             className="p-2 text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all md:opacity-0 md:group-hover:opacity-100"
           >
             <Edit2 size={18} />
           </button>
           <button
-            onClick={() => onDelete(job.id)}
+            onClick={() => {
+              if (window.confirm(`Delete application for ${job.role} at ${job.company}?`)) {
+                onDelete(job.id);
+              }
+            }}
+            aria-label={`Delete ${job.role} at ${job.company}`}
             className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all md:opacity-0 md:group-hover:opacity-100"
           >
             <Trash2 size={18} />
@@ -102,9 +108,19 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
             </a>
           </div>
         )}
+        {job.notes && (
+          <div className="pt-2 border-t border-white/5">
+            <div className="flex items-start gap-2 mt-2">
+              <StickyNote size={14} className="text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                {job.notes}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default JobCard;
+export default React.memo(JobCard);

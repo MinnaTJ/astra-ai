@@ -18,7 +18,8 @@ function JobModal({ isOpen, onClose, onSave, editingJob }) {
     dateApplied: new Date().toISOString().split('T')[0],
     timeApplied: new Date().toISOString().split('T')[1],
     status: JobStatus.APPLIED,
-    emailLink: ''
+    emailLink: '',
+    notes: ''
   });
 
   useEffect(() => {
@@ -30,7 +31,8 @@ function JobModal({ isOpen, onClose, onSave, editingJob }) {
         dateApplied: editingJob.dateApplied,
         timeApplied: editingJob.timeApplied,
         status: editingJob.status,
-        emailLink: editingJob.emailLink || ''
+        emailLink: editingJob.emailLink || '',
+        notes: editingJob.notes || ''
       });
     } else {
       setFormData({
@@ -40,7 +42,8 @@ function JobModal({ isOpen, onClose, onSave, editingJob }) {
         dateApplied: new Date().toISOString().split('T')[0],
         timeApplied: new Date().toISOString().split('T')[1],
         status: JobStatus.APPLIED,
-        emailLink: ''
+        emailLink: '',
+        notes: ''
       });
     }
   }, [editingJob, isOpen]);
@@ -180,6 +183,20 @@ function JobModal({ isOpen, onClose, onSave, editingJob }) {
               onChange={handleChange}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all text-white"
               placeholder="https://mail.google.com/..."
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-gray-400 ml-1">
+              Notes (Optional)
+            </label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows={3}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all text-white resize-none text-sm"
+              placeholder="Interview prep, contacts, salary info, etc."
             />
           </div>
 

@@ -23,7 +23,7 @@ function Sidebar({ activeTab, onTabChange, userName, userEmail }) {
   ];
 
   return (
-    <nav className="hidden md:flex w-20 md:w-64 border-r border-white/5 glass flex flex-col items-center md:items-stretch py-6 z-20">
+    <nav className="hidden md:flex w-20 md:w-64 border-r border-white/5 glass flex flex-col items-center md:items-stretch py-6 z-20" role="tablist" aria-label="Main navigation">
       {/* Logo */}
       <div className="px-6 mb-12 flex items-center gap-3">
         <div className="p-2 bg-violet-600 rounded-xl shadow-lg shadow-violet-600/20">
@@ -40,6 +40,9 @@ function Sidebar({ activeTab, onTabChange, userName, userEmail }) {
           <button
             key={id}
             onClick={() => onTabChange(id)}
+            role="tab"
+            aria-selected={activeTab === id}
+            aria-label={label}
             className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${activeTab === id
               ? 'bg-violet-600 text-white glow'
               : 'text-gray-400 hover:bg-white/5'
@@ -55,6 +58,9 @@ function Sidebar({ activeTab, onTabChange, userName, userEmail }) {
       <div className="px-3 space-y-2">
         <button
           onClick={() => onTabChange(AppTab.SETTINGS)}
+          role="tab"
+          aria-selected={activeTab === AppTab.SETTINGS}
+          aria-label="Settings"
           className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${activeTab === AppTab.SETTINGS
             ? 'bg-violet-600 text-white glow'
             : 'text-gray-400 hover:bg-white/5'

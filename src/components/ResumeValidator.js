@@ -96,7 +96,7 @@ function ResumeValidator({ settings }) {
       return;
     }
 
-    if (!settings?.geminiApiKey && !process.env.GEMINI_API_KEY) {
+    if (!settings?.geminiApiKey && !import.meta.env.VITE_GEMINI_API_KEY) {
       setError('Please add your Gemini API key in Settings first.');
       return;
     }
