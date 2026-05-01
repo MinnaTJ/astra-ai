@@ -143,7 +143,7 @@ export async function sendTextMessage(message, settings, toolExecutor) {
   const MAX_TOOL_ROUNDS = 5;
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       contents,
       config: { systemInstruction, tools }
     });
@@ -186,8 +186,8 @@ export async function sendTextMessage(message, settings, toolExecutor) {
       });
     }
 
-    // Send tool results back to the model with role 'function'
-    contents.push({ role: 'function', parts: toolResultParts });
+    // Send tool results back to the model with role 'user'
+    contents.push({ role: 'user', parts: toolResultParts });
   }
 
   // Fallback if we hit max rounds
@@ -261,7 +261,7 @@ export async function analyzeResume(resumeText, jobDescription, settings = {}) {
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
