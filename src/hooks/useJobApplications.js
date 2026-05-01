@@ -7,15 +7,21 @@ import { STORAGE_KEYS, DEFAULT_SETTINGS } from '@/constants';
  */
 export function useJobApplications() {
   const [applications, setApplications] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.JOBS);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.JOBS);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn('Failed to parse saved jobs, resetting:', e);
+      return [];
+    }
   });
 
-  // Ref for latest applications to avoid stale closures
+  // Keep ref in sync — update synchronously (not in useEffect) to avoid stale reads
   const applicationsRef = useRef(applications);
+  applicationsRef.current = applications;
 
+  // Persist to localStorage
   useEffect(() => {
-    applicationsRef.current = applications;
     localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(applications));
   }, [applications]);
 
@@ -34,11 +40,7 @@ export function useJobApplications() {
     // We use the Ref to check against the *very latest* state
     const existingJobIndex = currentApps.findIndex(j =>
       j.company.toLowerCase() === jobData.company.toLowerCase() &&
-      j.role.toLowerCase() === jobData.role.toLowerCase() &&
-      j.dateApplied === jobData.dateApplied &&
-      j.timeApplied === jobData.timeApplied &&
-      j.status === jobData.status &&
-      j.timeApplied === jobData.timeApplied
+      j.role.toLowerCase() === jobData.role.toLowerCase()
     );
 
     if (existingJobIndex >= 0) {
@@ -77,26 +79,39 @@ export function useJobApplications() {
     return "I couldn't find that job application in your tracker.";
   }, []);
 
-  const updateJobStatus = useCallback((companyName, newStatus, emailLink = null) => {
+  const updateJobApplication = useCallback((updateData) => {
+    const { company: companyName } = updateData;
     const job = applicationsRef.current.find((j) =>
       j.company.toLowerCase().includes(companyName.toLowerCase())
     );
+
     if (job) {
       setApplications((prev) =>
-        prev.map((j) => (j.id === job.id ? {
-          ...j,
-          status: newStatus,
-          // Only update emailLink if one is provided
-          ...(emailLink ? { emailLink } : {})
-        } : j))
+        prev.map((j) => (j.id === job.id ? { ...j, ...updateData } : j))
       );
-      return `I've updated your status for ${job.company} to ${newStatus}.`;
+      
+      const changes = Object.keys(updateData)
+        .filter(k => k !== 'company' && updateData[k] !== undefined)
+        .map(k => `${k} to "${updateData[k]}"`)
+        .join(', ');
+        
+      return `Updated the application for ${job.company}: ${changes || 'No changes made'}.`;
     }
     return `I couldn't find an application for "${companyName}" in your tracker.`;
   }, []);
 
   const listJobs = useCallback(() => {
-    const jobs = applicationsRef.current;
+    // Read directly from localStorage (ground truth) to avoid stale ref issues
+    let jobs = applicationsRef.current;
+    if (!jobs || jobs.length === 0) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.JOBS);
+        jobs = saved ? JSON.parse(saved) : [];
+      } catch {
+        jobs = [];
+      }
+    }
+
     if (jobs.length === 0) return "You haven't added any job applications yet.";
 
     const list = jobs
@@ -106,7 +121,16 @@ export function useJobApplications() {
   }, []);
 
   const findJobByCompany = useCallback((companyName) => {
-    return applicationsRef.current.find((j) =>
+    let jobs = applicationsRef.current;
+    if (!jobs || jobs.length === 0) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.JOBS);
+        jobs = saved ? JSON.parse(saved) : [];
+      } catch {
+        jobs = [];
+      }
+    }
+    return jobs.find((j) =>
       j.company.toLowerCase().includes(companyName.toLowerCase())
     );
   }, []);
@@ -122,7 +146,7 @@ export function useJobApplications() {
     applicationsRef,
     saveJobApplication,
     deleteJobApplication,
-    updateJobStatus,
+    updateJobApplication,
     listJobs,
     findJobByCompany,
     clearAllJobs
@@ -135,8 +159,13 @@ export function useJobApplications() {
  */
 export function useSettings() {
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    } catch (e) {
+      console.warn('Failed to parse saved settings, resetting:', e);
+      return DEFAULT_SETTINGS;
+    }
   });
 
   const settingsRef = useRef(settings);

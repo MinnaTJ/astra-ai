@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { AppTab } from '@/constants';
+import { AppTab, STORAGE_KEYS } from '@/constants';
 import { syncGmailEmails, fetchUserInfo } from '@/services';
 import { useJobApplications, useSettings } from '@/hooks';
 import {
@@ -10,69 +10,10 @@ import {
   SettingsView,
   LoginView,
   AnimatedBackground,
-  MobileNav
+  MobileNav,
+  ErrorBoundary,
+  OAuthCallback
 } from '@/components';
-
-/**
- * OAuth Callback Handler Component
- */
-/**
- * OAuth Callback Handler Component
- */
-function OAuthCallback({ onSuccess, onError }) {
-  const hasSent = React.useRef(false);
-
-  useEffect(() => {
-    const handleAuth = async () => {
-      if (hasSent.current) return;
-
-      // 1. Try to parse access_token from hash (Implicit Flow)
-      const hash = window.location.hash.substring(1);
-      const hashParams = new URLSearchParams(hash);
-      const accessTokenFromHash = hashParams.get('access_token');
-
-      // 2. Try to parse code from search (Code Flow)
-      const searchParams = new URLSearchParams(window.location.search);
-      const code = searchParams.get('code');
-      const error = searchParams.get('error') || hashParams.get('error');
-
-      if (accessTokenFromHash) {
-        hasSent.current = true;
-        onSuccess({ accessToken: accessTokenFromHash });
-        window.history.replaceState(null, '', window.location.pathname);
-      } else if (code) {
-        hasSent.current = true;
-        if (window.opener) {
-          window.opener.postMessage({ type: 'gmail-oauth-success', code }, window.location.origin);
-          window.close();
-        } else {
-          onSuccess({ code });
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      } else if (error) {
-        hasSent.current = true;
-        if (window.opener) {
-          window.opener.postMessage({ type: 'gmail-oauth-error', error }, window.location.origin);
-          window.close();
-        } else {
-          onError(error);
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      }
-    };
-
-    handleAuth();
-  }, [onSuccess, onError]);
-
-  return (
-    <div className="flex h-screen bg-gray-950 text-gray-100 items-center justify-center">
-      <div className="text-center">
-        <div className="w-10 h-10 border-3 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-400">Completing Gmail authorization...</p>
-      </div>
-    </div>
-  );
-}
 
 /**
  * Main Application Component
@@ -82,6 +23,21 @@ function App() {
   const [activeTab, setActiveTab] = useState(AppTab.ASSISTANT);
   const [isSyncingGmail, setIsSyncingGmail] = useState(false);
   const [isOAuthCallback, setIsOAuthCallback] = useState(false);
+
+  // Persisted chat messages — survive tab switches and page refreshes
+  const [chatMessages, setChatMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.CHAT);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist chat messages to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CHAT, JSON.stringify(chatMessages));
+  }, [chatMessages]);
 
   // Check if this is an OAuth callback
   useEffect(() => {
@@ -105,7 +61,7 @@ function App() {
     applicationsRef,
     saveJobApplication,
     deleteJobApplication,
-    updateJobStatus,
+    updateJobApplication,
     listJobs,
     findJobByCompany,
     clearAllJobs
@@ -183,7 +139,7 @@ function App() {
 
   // Gmail sync handler
   const handleSyncGmail = useCallback(async () => {
-    if (!settings.isGmailConnected || isSyncingGmail) return;
+    if (!settings.isGmailConnected || isSyncingGmail) return 'Gmail is not connected or sync is already in progress.';
     setIsSyncingGmail(true);
 
     try {
@@ -198,29 +154,41 @@ function App() {
       }
 
       // Execute tool calls returned by the sync process
+      let savedCount = 0;
+      let updatedCount = 0;
       for (const part of result.functionCalls) {
         if (part.functionCall) {
           const fc = part.functionCall;
           if (fc.name === 'save_job_application') {
             saveJobApplication(fc.args);
-          } else if (fc.name === 'update_job_status') {
-            updateJobStatus(fc.args.company, fc.args.status, fc.args.emailLink);
+            savedCount++;
+          } else if (fc.name === 'update_job_status' || fc.name === 'update_job_application') {
+            // Both names handled for backwards compatibility during model transition
+            updateJobApplication(fc.args);
+            updatedCount++;
           }
         }
       }
+
+      const parts = [];
+      if (savedCount > 0) parts.push(`${savedCount} new application(s) saved`);
+      if (updatedCount > 0) parts.push(`${updatedCount} application(s) updated`);
+      return parts.length > 0
+        ? `Gmail sync complete! ${parts.join(' and ')}.`
+        : 'Gmail sync complete. No new job-related emails found.';
     } catch (err) {
       console.error('Gmail sync failed', err);
-      alert(err.message || 'Gmail sync failed. Please try again.');
+      return `Gmail sync failed: ${err.message || 'Unknown error'}`;
     } finally {
       setIsSyncingGmail(false);
     }
-  }, [settings.isGmailConnected, isSyncingGmail, settingsRef, saveJobApplication, updateJobStatus, applicationsRef, updateSettings]);
+  }, [settings.isGmailConnected, isSyncingGmail, settingsRef, saveJobApplication, updateJobApplication, applicationsRef, updateSettings]);
 
   // Job action handlers for assistant view
   const jobActions = {
     saveJobApplication,
     deleteJobApplication,
-    updateJobStatus,
+    updateJobApplication,
     listJobs,
     findJobByCompany,
     onSyncGmail: handleSyncGmail,
@@ -250,54 +218,63 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen text-gray-100 overflow-hidden relative">
-      {/* Animated Background */}
-      <AnimatedBackground />
+    <ErrorBoundary>
+      <div className="flex h-screen text-gray-100 overflow-hidden relative">
+        {/* Animated Background */}
+        <AnimatedBackground />
 
-      {/* Sidebar Navigation */}
-      <Sidebar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        userName={settings.userName}
-        userEmail={settings.userEmail}
-      />
+        {/* Sidebar Navigation */}
+        <Sidebar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          userName={settings.userName}
+          userEmail={settings.userEmail}
+        />
 
-      <MobileNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+        <MobileNav
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-      {/* Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {/* Tab Content */}
-        {activeTab === AppTab.ASSISTANT && (
-          <AssistantView settingsRef={settingsRef} jobActions={jobActions} onSyncGmail={handleSyncGmail} />
-        )}
+        {/* Content Area — tabs stay mounted, hidden via CSS */}
+        <main className="flex-1 flex flex-col h-full overflow-hidden relative" role="tabpanel">
+          <div className={activeTab === AppTab.ASSISTANT ? 'flex-1 flex flex-col h-full overflow-hidden' : 'hidden'}>
+            <AssistantView
+              settingsRef={settingsRef}
+              jobActions={jobActions}
+              onSyncGmail={handleSyncGmail}
+              messages={chatMessages}
+              setMessages={setChatMessages}
+            />
+          </div>
 
-        {activeTab === AppTab.DASHBOARD && (
-          <JobDashboard
-            applications={applications}
-            onDelete={deleteJobApplication}
-            onSave={saveJobApplication}
-            isGmailConnected={settings.isGmailConnected}
-            onSyncGmail={handleSyncGmail}
-            isSyncing={isSyncingGmail}
-            timezone={settings.timezone}
-          />
-        )}
+          <div className={activeTab === AppTab.DASHBOARD ? 'flex-1 flex flex-col h-full overflow-hidden' : 'hidden'}>
+            <JobDashboard
+              applications={applications}
+              onDelete={deleteJobApplication}
+              onSave={saveJobApplication}
+              isGmailConnected={settings.isGmailConnected}
+              onSyncGmail={handleSyncGmail}
+              isSyncing={isSyncingGmail}
+              timezone={settings.timezone}
+            />
+          </div>
 
-        {activeTab === AppTab.RESUME && <ResumeValidator settings={settings} />}
+          <div className={activeTab === AppTab.RESUME ? 'flex-1 flex flex-col h-full overflow-hidden' : 'hidden'}>
+            <ResumeValidator settings={settings} />
+          </div>
 
-        {activeTab === AppTab.SETTINGS && (
-          <SettingsView
-            settings={settings}
-            onUpdate={updateSettings}
-            onClearData={clearAllJobs}
-            onLogout={handleLogout}
-          />
-        )}
-      </main>
-    </div>
+          <div className={activeTab === AppTab.SETTINGS ? 'flex-1 flex flex-col h-full overflow-hidden' : 'hidden'}>
+            <SettingsView
+              settings={settings}
+              onUpdate={updateSettings}
+              onClearData={clearAllJobs}
+              onLogout={handleLogout}
+            />
+          </div>
+        </main>
+      </div>
+    </ErrorBoundary>
   );
 }
 

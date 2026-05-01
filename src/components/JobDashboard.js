@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Briefcase, Plus, RefreshCcw, Loader2, Search, Filter, Trash2, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Briefcase, Plus, RefreshCcw, Loader2, Search, Filter, Trash2, X, TrendingUp, Users, BarChart3, Zap } from 'lucide-react';
 import JobCard from './JobCard';
 import JobModal from './JobModal';
 
@@ -22,8 +22,6 @@ function JobDashboard({
   isSyncing,
   timezone
 }) {
-  /* ... existing imports */
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
 
@@ -31,7 +29,7 @@ function JobDashboard({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterOption, setFilterOption] = useState('all');
 
-  const filteredApplications = applications.filter(job => {
+  const filteredApplications = useMemo(() => applications.filter(job => {
     // Search logic: check company and role
     const matchesSearch =
       (job.company?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -81,7 +79,7 @@ function JobDashboard({
     }
 
     return matchesSearch && matchesFilter;
-  });
+  }), [applications, searchTerm, filterOption]);
 
   const handleOpenAddModal = () => {
     setEditingJob(null);
@@ -104,6 +102,21 @@ function JobDashboard({
       rejectedJobs.forEach(job => onDelete(job.id));
     }
   };
+
+  // Dashboard stats
+  const stats = useMemo(() => {
+    const total = applications.length;
+    const interviewing = applications.filter(j => j.status === 'Interviewing').length;
+    const assessments = applications.filter(j => j.status === 'Assessment').length;
+    const offers = applications.filter(j => j.status === 'Offer').length;
+    const rejected = applications.filter(j => j.status === 'Rejected').length;
+    const active = total - rejected;
+    // Response rate = anything that moved past 'Applied' or 'Ghosted'
+    const responded = applications.filter(j => !['Applied', 'Ghosted'].includes(j.status)).length;
+    const responseRate = total > 0 ? Math.round((responded / total) * 100) : 0;
+    const interviewRate = total > 0 ? Math.round(((interviewing + assessments + offers) / total) * 100) : 0;
+    return { total, active, responseRate, interviewRate, offers };
+  }, [applications]);
 
   return (
     <div className="flex-1 p-4 md:p-6 overflow-y-auto custom-scrollbar">
@@ -141,6 +154,48 @@ function JobDashboard({
             </button>
           </div>
         </header>
+
+        {/* Stats Cards */}
+        {applications.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+            <div className="glass rounded-2xl p-4 border border-white/5 hover:border-violet-500/20 transition-all">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-violet-500/10 rounded-xl">
+                  <Briefcase size={18} className="text-violet-400" />
+                </div>
+                <span className="text-xs text-gray-500 font-medium">Total</span>
+              </div>
+              <p className="text-2xl font-bold text-white">{stats.total}</p>
+            </div>
+            <div className="glass rounded-2xl p-4 border border-white/5 hover:border-blue-500/20 transition-all">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-500/10 rounded-xl">
+                  <Zap size={18} className="text-blue-400" />
+                </div>
+                <span className="text-xs text-gray-500 font-medium">Active</span>
+              </div>
+              <p className="text-2xl font-bold text-white">{stats.active}</p>
+            </div>
+            <div className="glass rounded-2xl p-4 border border-white/5 hover:border-amber-500/20 transition-all">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-amber-500/10 rounded-xl">
+                  <TrendingUp size={18} className="text-amber-400" />
+                </div>
+                <span className="text-xs text-gray-500 font-medium">Response</span>
+              </div>
+              <p className="text-2xl font-bold text-white">{stats.responseRate}<span className="text-sm text-gray-500 font-normal">%</span></p>
+            </div>
+            <div className="glass rounded-2xl p-4 border border-white/5 hover:border-green-500/20 transition-all">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-green-500/10 rounded-xl">
+                  <BarChart3 size={18} className="text-green-400" />
+                </div>
+                <span className="text-xs text-gray-500 font-medium">Interview</span>
+              </div>
+              <p className="text-2xl font-bold text-white">{stats.interviewRate}<span className="text-sm text-gray-500 font-normal">%</span></p>
+            </div>
+          </div>
+        )}
 
         {/* Search and Filters */}
         <div className="mb-6 md:mb-8 space-y-3 md:space-y-4">

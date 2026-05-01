@@ -1,101 +1,15 @@
-import { useState } from 'react';
 import { Mail, Loader2, Sparkles, Briefcase, BarChart3, Search } from 'lucide-react';
-import { exchangeCodeForTokens, fetchUserInfo } from '@/services';
-import { OAUTH_CONFIG } from '@/constants';
-
-// Gmail OAuth Configuration
-const GMAIL_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const GMAIL_CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
-const GMAIL_SCOPES = OAUTH_CONFIG.SCOPES;
+import { useGmailOAuth } from '@/hooks';
 
 /**
  * Login View Component
  * Provides a premium-looking landing page with Login with Gmail capability
  */
 function LoginView({ onLoginSuccess }) {
-    const [isConnecting, setIsConnecting] = useState(false);
-
-    const handleLogin = async () => {
-        if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET) {
-            alert('Gmail integration requires OAuth Client ID and Secret. Please check your settings.');
-            return;
-        }
-
-        setIsConnecting(true);
-
-        try {
-            // Create OAuth URL
-            const redirectUri = window.location.href.split('?')[0].split('#')[0];
-            const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-            authUrl.searchParams.set('client_id', GMAIL_CLIENT_ID);
-            authUrl.searchParams.set('redirect_uri', redirectUri);
-            authUrl.searchParams.set('response_type', 'code');
-            authUrl.searchParams.set('access_type', 'offline');
-            authUrl.searchParams.set('scope', GMAIL_SCOPES);
-            authUrl.searchParams.set('prompt', 'consent');
-
-            // Open OAuth popup
-            window.open(
-                authUrl.toString(),
-                'gmail-oauth',
-                'width=500,height=600,scrollbars=yes'
-            );
-
-            // Listen for OAuth callback
-            const handleMessage = async (event) => {
-                if (event.origin !== window.location.origin) return;
-
-                if (event.data.type === 'gmail-oauth-success' || event.data.type === 'gmail-oauth-error') {
-                    window.removeEventListener('message', handleMessage);
-
-                    if (event.data.type === 'gmail-oauth-success') {
-                        try {
-                            const { code } = event.data;
-                            if (code) {
-                                // Exchange the code for real tokens
-                                const tokens = await exchangeCodeForTokens(
-                                    code,
-                                    GMAIL_CLIENT_ID,
-                                    GMAIL_CLIENT_SECRET,
-                                    redirectUri
-                                );
-
-                                // Fetch user info
-                                const userInfo = await fetchUserInfo(tokens.access_token);
-
-                                onLoginSuccess({
-                                    tokens,
-                                    userInfo: {
-                                        name: userInfo?.name || '',
-                                        email: userInfo?.email || '',
-                                        picture: userInfo?.picture || ''
-                                    }
-                                });
-                            }
-                        } catch (err) {
-                            console.error('Token exchange failed:', err);
-                            alert('Login failed during token exchange.');
-                            setIsConnecting(false);
-                        }
-                    } else {
-                        console.error('Login OAuth error:', event.data.error);
-                        setIsConnecting(false);
-                    }
-                }
-            };
-
-            window.addEventListener('message', handleMessage);
-
-            // Fallback timeout
-            setTimeout(() => {
-                setIsConnecting(false);
-            }, 120000);
-
-        } catch (error) {
-            console.error('Login error:', error);
-            setIsConnecting(false);
-        }
-    };
+    const { startOAuth, isConnecting } = useGmailOAuth({
+        onSuccess: onLoginSuccess,
+        onError: (msg) => alert(msg)
+    });
 
     return (
         <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -137,7 +51,7 @@ function LoginView({ onLoginSuccess }) {
 
                     <div className="pt-4">
                         <button
-                            onClick={handleLogin}
+                            onClick={startOAuth}
                             disabled={isConnecting}
                             className="w-full flex items-center justify-center gap-3 bg-white text-gray-950 hover:bg-gray-100 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-lg disabled:opacity-50"
                         >

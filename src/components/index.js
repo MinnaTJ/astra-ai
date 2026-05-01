@@ -11,3 +11,5 @@ export { default as Waveform } from './Waveform';
 export { default as TranscriptionLog } from './TranscriptionLog';
 export { default as StatusIcon } from './StatusIcon';
 export { default as MobileNav } from './MobileNav';
+export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as OAuthCallback } from './OAuthCallback';

@@ -98,7 +98,8 @@ export const DEFAULT_SETTINGS = {
  */
 export const STORAGE_KEYS = {
   JOBS: 'astra-jobs',
-  SETTINGS: 'astra-settings'
+  SETTINGS: 'astra-settings',
+  CHAT: 'astra-chat'
 };
 
 /**

@@ -19,9 +19,10 @@ import TranscriptionLog from './TranscriptionLog';
  * @param {Object} props - Component props
  * @param {Object} props.settingsRef - Reference to current settings
  * @param {Object} props.jobActions - Job management action functions
+ * @param {Array} props.messages - Persisted chat messages from parent
+ * @param {Function} props.setMessages - Chat messages updater from parent
  */
-function AssistantView({ settingsRef, jobActions }) {
-  const [messages, setMessages] = useState([]);
+function AssistantView({ settingsRef, jobActions, messages, setMessages }) {
   const [textInput, setTextInput] = useState('');
   const [isTextThinking, setIsTextThinking] = useState(false);
   const [error, setError] = useState(null);
@@ -29,7 +30,7 @@ function AssistantView({ settingsRef, jobActions }) {
   const {
     saveJobApplication,
     deleteJobApplication,
-    updateJobStatus,
+    updateJobApplication,
     listJobs,
     findJobByCompany,
     onSyncGmail
@@ -37,26 +38,47 @@ function AssistantView({ settingsRef, jobActions }) {
 
   // Handle tool calls from voice or text
   const handleToolCall = useCallback(
-    (fc) => {
+    async (fc) => {
       let result = '';
+      let mutated = false;
       if (fc.name === 'save_job_application') {
         result = saveJobApplication(fc.args);
+        mutated = true;
       } else if (fc.name === 'list_job_applications') {
         result = listJobs();
-      } else if (fc.name === 'update_job_status') {
-        result = updateJobStatus(fc.args.company, fc.args.status, fc.args.emailLink);
+      } else if (fc.name === 'update_job_status' || fc.name === 'update_job_application') {
+        // Support both names for transition safety
+        result = updateJobApplication(fc.args);
+        mutated = true;
       } else if (fc.name === 'delete_job_application') {
         const job = findJobByCompany(fc.args.company);
         result = job
           ? deleteJobApplication(job.id)
           : `Could not find a job for ${fc.args.company}.`;
+        mutated = true;
       } else if (fc.name === 'sync_gmail_emails') {
-        onSyncGmail();
-        result = "Syncing your Gmail for job updates...";
+        // Add immediate feedback message so user knows the long sync process started
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString() + '-sync-start',
+            role: 'assistant',
+            text: '🔄 Syncing your Gmail for job applications... This usually takes about a minute. I will let you know when I am done!',
+            timestamp: Date.now()
+          }
+        ]);
+        // Await the full sync so we can report results back to the AI
+        result = await onSyncGmail();
+        mutated = true;
+      }
+      
+      // If we mutated state, give the AI an updated summary so it isn't flying blind
+      if (mutated) {
+        result += '\n\nCURRENT TRACKER STATE:\n' + listJobs();
       }
       return result;
     },
-    [saveJobApplication, deleteJobApplication, updateJobStatus, listJobs, findJobByCompany, onSyncGmail]
+    [saveJobApplication, deleteJobApplication, updateJobApplication, listJobs, findJobByCompany, onSyncGmail, setMessages]
   );
 
   // Handle voice messages
@@ -123,20 +145,9 @@ function AssistantView({ settingsRef, jobActions }) {
     setMessages((prev) => [...prev, newUserMessage]);
 
     try {
-      const response = await sendTextMessage(userMsg, settingsRef.current);
-      let assistantText = response.text || '';
-
-      // Process function calls
-      for (const part of response.functionCalls) {
-        if (part.functionCall) {
-          const result = handleToolCall(part.functionCall);
-          if (!assistantText) {
-            assistantText = result;
-          } else {
-            assistantText += `\n\n[Action: ${result}]`;
-          }
-        }
-      }
+      // Pass handleToolCall so the model can execute tools and see results
+      const response = await sendTextMessage(userMsg, settingsRef.current, handleToolCall);
+      const assistantText = response.text || 'Done! Check your dashboard for updates.';
 
       setMessages((prev) => [
         ...prev,
@@ -148,6 +159,7 @@ function AssistantView({ settingsRef, jobActions }) {
         }
       ]);
     } catch (err) {
+      console.error('Text message error:', err);
       setError('Text service unavailable. Check your connection.');
     } finally {
       setIsTextThinking(false);
@@ -198,6 +210,7 @@ function AssistantView({ settingsRef, jobActions }) {
                 : 'Ready to track your career')}
             {state === AssistantState.CONNECTING && 'Establishing connection...'}
             {state === AssistantState.LISTENING && "I'm listening..."}
+            {state === AssistantState.THINKING && 'Astra is thinking...'}
             {state === AssistantState.SPEAKING && 'Astra is speaking...'}
             {state === AssistantState.ERROR && 'Connection Issue'}
           </h2>
@@ -281,7 +294,11 @@ function AssistantView({ settingsRef, jobActions }) {
           </button>
         </div>
         <div className="flex-1 p-3 md:p-4 overflow-hidden flex flex-col">
-          <TranscriptionLog messages={messages} />
+          {/* Transcription Log */}
+          <TranscriptionLog
+            messages={messages}
+            isThinking={isTextThinking || state === AssistantState.THINKING}
+          />
         </div>
       </aside>
     </section>
