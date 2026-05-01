@@ -17,6 +17,7 @@ import {
 import { VoiceNames, ConcisenessLevels, STORAGE_KEYS, Timezones } from '@/constants';
 import { useGmailOAuth } from '@/hooks';
 import { Globe, LogOut } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 /**
  * Settings management component
@@ -73,12 +74,21 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
   const exportData = () => {
     const data = localStorage.getItem(STORAGE_KEYS.JOBS);
     if (!data) return;
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `astra-career-export-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
+    try {
+      const jobs = JSON.parse(data);
+      if (!jobs.length) {
+        alert('No job applications to export.');
+        return;
+      }
+      
+      const worksheet = XLSX.utils.json_to_sheet(jobs);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Job Applications');
+      XLSX.writeFile(workbook, `astra-career-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (e) {
+      console.error('Export failed', e);
+      alert('Failed to export data.');
+    }
   };
 
   // Data import
@@ -90,7 +100,12 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const imported = JSON.parse(e.target.result);
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const imported = XLSX.utils.sheet_to_json(worksheet);
+
         if (!Array.isArray(imported)) {
           alert('Invalid format: expected an array of job applications.');
           return;
@@ -100,7 +115,7 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
           const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.JOBS) || '[]');
           // Merge: avoid duplicates by checking id
           const existingIds = new Set(existing.map(j => j.id));
-          const newJobs = imported.filter(j => !existingIds.has(j.id));
+          const newJobs = imported.filter(j => j.id && !existingIds.has(j.id));
           const merged = [...existing, ...newJobs];
           localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(merged));
           alert(`Imported ${newJobs.length} new application(s). Refresh the page to see changes.`);
@@ -108,10 +123,10 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
         }
       } catch (err) {
         console.error('Import failed:', err);
-        alert('Failed to import: invalid JSON file.');
+        alert('Failed to import: invalid Excel file.');
       }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
     // Reset input so the same file can be re-imported
     event.target.value = '';
   };
@@ -411,25 +426,25 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
               <div className="p-6 bg-white/5 border border-white/5 rounded-2xl">
                 <h4 className="font-semibold text-white mb-2">Export Records</h4>
                 <p className="text-sm text-gray-500 mb-4">
-                  Download your entire job tracker history as a JSON file.
+                  Download your entire job tracker history as an Excel file.
                 </p>
                 <button
                   onClick={exportData}
                   className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all"
                 >
-                  <Download size={16} /> Export JSON
+                  <Download size={16} /> Export to Excel
                 </button>
               </div>
 
               <div className="p-6 bg-white/5 border border-white/5 rounded-2xl">
                 <h4 className="font-semibold text-white mb-2">Import Records</h4>
                 <p className="text-sm text-gray-500 mb-4">
-                  Restore job applications from a previously exported JSON file.
+                  Restore job applications from a previously exported Excel file.
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".json,application/json"
+                  accept=".xlsx, .xls"
                   onChange={importData}
                   className="hidden"
                 />
@@ -437,7 +452,7 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all"
                 >
-                  <Upload size={16} /> Import JSON
+                  <Upload size={16} /> Import from Excel
                 </button>
               </div>
 
