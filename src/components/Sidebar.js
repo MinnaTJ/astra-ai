@@ -6,16 +6,17 @@ import {
   Settings
 } from 'lucide-react';
 import { AppTab } from '@/constants';
+import { useSettings } from '@/contexts';
 
 /**
  * Navigation sidebar component
  * @param {Object} props - Component props
  * @param {string} props.activeTab - Currently active tab
  * @param {Function} props.onTabChange - Tab change handler
- * @param {string} props.userName - User's name
- * @param {string} props.userEmail - User's email
  */
-function Sidebar({ activeTab, onTabChange, userName, userEmail }) {
+function Sidebar({ activeTab, onTabChange }) {
+  const { settings } = useSettings();
+  const { userName, userEmail } = settings;
   const navItems = [
     { id: AppTab.ASSISTANT, icon: MessageSquare, label: 'Assistant' },
     { id: AppTab.DASHBOARD, icon: LayoutDashboard, label: 'Tracker' },

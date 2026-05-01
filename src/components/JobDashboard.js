@@ -1,27 +1,26 @@
 import { useState, useMemo } from 'react';
 import { Briefcase, Plus, RefreshCcw, Loader2, Search, Filter, Trash2, X, TrendingUp, BarChart3, Zap } from 'lucide-react';
+import { useJobs, useSettings, useConfirm } from '@/contexts';
 import JobCard from './JobCard';
 import JobModal from './JobModal';
 
 /**
  * Job applications dashboard component
  * @param {Object} props - Component props
- * @param {Array} props.applications - Job applications array
- * @param {Function} props.onDelete - Delete handler
- * @param {Function} props.onSave - Save handler
- * @param {boolean} props.isGmailConnected - Gmail connection status
  * @param {Function} props.onSyncGmail - Gmail sync handler
  * @param {boolean} props.isSyncing - Syncing state
  */
 function JobDashboard({
-  applications,
-  onDelete,
-  onSave,
-  isGmailConnected,
   onSyncGmail,
-  isSyncing,
-  timezone
+  isSyncing
 }) {
+  const { applications, deleteJobApplication: onDelete, saveJobApplication: onSave } = useJobs();
+  const { settings } = useSettings();
+  const { confirm } = useConfirm();
+
+  const isGmailConnected = settings.isGmailConnected;
+  const timezone = settings.timezone;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
 
@@ -96,8 +95,14 @@ function JobDashboard({
     setEditingJob(null);
   };
 
-  const handleRemoveRejected = () => {
-    if (window.confirm('Are you sure you want to remove all rejected applications?')) {
+  const handleRemoveRejected = async () => {
+    const isConfirmed = await confirm({
+      title: 'Clear Rejected',
+      message: 'Are you sure you want to remove all rejected applications?',
+      confirmText: 'Remove',
+      isDestructive: true
+    });
+    if (isConfirmed) {
       const rejectedJobs = applications.filter(job => job.status === 'Rejected');
       rejectedJobs.forEach(job => onDelete(job.id));
     }

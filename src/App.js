@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AppTab, STORAGE_KEYS } from '@/constants';
 import { syncGmailEmails, fetchUserInfo } from '@/services';
-import { useJobApplications, useSettings } from '@/hooks';
+import { useJobs, useSettings, useToast } from '@/contexts';
 import {
   Sidebar,
   AssistantView,
@@ -57,17 +57,13 @@ function App() {
 
   // Custom hooks for state management
   const {
-    applications,
     applicationsRef,
     saveJobApplication,
-    deleteJobApplication,
-    updateJobApplication,
-    listJobs,
-    findJobByCompany,
-    clearAllJobs
-  } = useJobApplications();
+    updateJobApplication
+  } = useJobs();
 
   const { settings, settingsRef, updateSettings } = useSettings();
+  const { showToast } = useToast();
 
   // Authentication State
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -115,9 +111,9 @@ function App() {
   // OAuth error handler
   const handleOAuthError = useCallback((error) => {
     console.error('OAuth error:', error);
-    alert('Gmail connection failed: ' + error);
+    showToast('Gmail connection failed: ' + error, 'error');
     setIsOAuthCallback(false);
-  }, []);
+  }, [showToast]);
 
   // Login success handler (for LoginView)
   const handleLoginSuccess = useCallback((data) => {
@@ -184,16 +180,6 @@ function App() {
     }
   }, [settings.isGmailConnected, isSyncingGmail, settingsRef, saveJobApplication, updateJobApplication, applicationsRef, updateSettings]);
 
-  // Job action handlers for assistant view
-  const jobActions = {
-    saveJobApplication,
-    deleteJobApplication,
-    updateJobApplication,
-    listJobs,
-    findJobByCompany,
-    onSyncGmail: handleSyncGmail,
-    applicationsRef
-  };
 
   const handleLogout = useCallback(() => {
     updateSettings({
@@ -224,24 +210,13 @@ function App() {
         <AnimatedBackground />
 
         {/* Sidebar Navigation */}
-        <Sidebar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          userName={settings.userName}
-          userEmail={settings.userEmail}
-        />
-
-        <MobileNav
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <MobileNav activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* Content Area — tabs stay mounted, hidden via CSS */}
         <main className="flex-1 flex flex-col h-full overflow-hidden relative" role="tabpanel">
           <div className={activeTab === AppTab.ASSISTANT ? 'flex-1 flex flex-col h-full overflow-hidden' : 'hidden'}>
             <AssistantView
-              settingsRef={settingsRef}
-              jobActions={jobActions}
               onSyncGmail={handleSyncGmail}
               messages={chatMessages}
               setMessages={setChatMessages}
@@ -250,27 +225,17 @@ function App() {
 
           <div className={activeTab === AppTab.DASHBOARD ? 'flex-1 flex flex-col h-full overflow-hidden' : 'hidden'}>
             <JobDashboard
-              applications={applications}
-              onDelete={deleteJobApplication}
-              onSave={saveJobApplication}
-              isGmailConnected={settings.isGmailConnected}
               onSyncGmail={handleSyncGmail}
               isSyncing={isSyncingGmail}
-              timezone={settings.timezone}
             />
           </div>
 
           <div className={activeTab === AppTab.RESUME ? 'flex-1 flex flex-col h-full overflow-hidden' : 'hidden'}>
-            <ResumeValidator settings={settings} />
+            <ResumeValidator />
           </div>
 
           <div className={activeTab === AppTab.SETTINGS ? 'flex-1 flex flex-col h-full overflow-hidden' : 'hidden'}>
-            <SettingsView
-              settings={settings}
-              onUpdate={updateSettings}
-              onClearData={clearAllJobs}
-              onLogout={handleLogout}
-            />
+            <SettingsView onLogout={handleLogout} />
           </div>
         </main>
       </div>

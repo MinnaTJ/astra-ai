@@ -16,17 +16,20 @@ import {
 } from 'lucide-react';
 import { VoiceNames, ConcisenessLevels, STORAGE_KEYS, Timezones } from '@/constants';
 import { useGmailOAuth } from '@/hooks';
+import { useSettings, useJobs, useToast, useConfirm } from '@/contexts';
 import { Globe, LogOut } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 /**
  * Settings management component
  * @param {Object} props - Component props
- * @param {Object} props.settings - Current settings
- * @param {Function} props.onUpdate - Settings update handler
  * @param {Function} props.onLogout - Logout handler
  */
-function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
+function SettingsView({ onLogout }) {
+  const { settings, updateSettings: onUpdate } = useSettings();
+  const { clearAllJobs: onClearData } = useJobs();
+  const { showToast } = useToast();
+  const { confirm } = useConfirm();
   const [showApiKey, setShowApiKey] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(settings.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '');
 
@@ -58,7 +61,7 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
 
   const { startOAuth: handleConnectGmail, isConnecting: isConnectingGmail } = useGmailOAuth({
     onSuccess: handleGmailSuccess,
-    onError: (msg) => alert(msg)
+    onError: (msg) => showToast(msg, 'error')
   });
 
   const handleDisconnectGmail = () => {
@@ -77,7 +80,7 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
     try {
       const jobs = JSON.parse(data);
       if (!jobs.length) {
-        alert('No job applications to export.');
+        showToast('No job applications to export.', 'error');
         return;
       }
       
@@ -85,9 +88,10 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Job Applications');
       XLSX.writeFile(workbook, `astra-career-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+      showToast('Export successful!', 'success');
     } catch (e) {
       console.error('Export failed', e);
-      alert('Failed to export data.');
+      showToast('Failed to export data.', 'error');
     }
   };
 
@@ -98,7 +102,7 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
@@ -107,23 +111,29 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
         const imported = XLSX.utils.sheet_to_json(worksheet);
 
         if (!Array.isArray(imported)) {
-          alert('Invalid format: expected an array of job applications.');
+          showToast('Invalid format: expected an array of job applications.', 'error');
           return;
         }
         const count = imported.length;
-        if (window.confirm(`Import ${count} job application(s)? This will merge with your existing data.`)) {
+        const isConfirmed = await confirm({
+          title: 'Import Applications',
+          message: `Import ${count} job application(s)? This will merge with your existing data.`,
+          confirmText: 'Import',
+          isDestructive: false
+        });
+        if (isConfirmed) {
           const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.JOBS) || '[]');
           // Merge: avoid duplicates by checking id
           const existingIds = new Set(existing.map(j => j.id));
           const newJobs = imported.filter(j => j.id && !existingIds.has(j.id));
           const merged = [...existing, ...newJobs];
           localStorage.setItem(STORAGE_KEYS.JOBS, JSON.stringify(merged));
-          alert(`Imported ${newJobs.length} new application(s). Refresh the page to see changes.`);
-          window.location.reload();
+          showToast(`Imported ${newJobs.length} new application(s). Refresh the page to see changes.`, 'success');
+          setTimeout(() => window.location.reload(), 1500);
         }
       } catch (err) {
         console.error('Import failed:', err);
-        alert('Failed to import: invalid Excel file.');
+        showToast('Failed to import: invalid Excel file.', 'error');
       }
     };
     reader.readAsArrayBuffer(file);
@@ -131,12 +141,14 @@ function SettingsView({ settings, onUpdate, onClearData, onLogout }) {
     event.target.value = '';
   };
 
-  const handleClearData = () => {
-    if (
-      window.confirm(
-        'Are you sure? This will delete all tracked applications permanently.'
-      )
-    ) {
+  const handleClearData = async () => {
+    const isConfirmed = await confirm({
+      title: 'Reset All Data',
+      message: 'Are you sure? This will delete all tracked applications permanently.',
+      confirmText: 'Reset Data',
+      isDestructive: true
+    });
+    if (isConfirmed) {
       onClearData();
     }
   };

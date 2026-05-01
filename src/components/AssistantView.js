@@ -11,30 +11,30 @@ import {
 import { AssistantState } from '@/constants';
 import { sendTextMessage } from '@/services';
 import { useVoiceSession } from '@/hooks';
+import { useJobs, useSettings } from '@/contexts';
 import Waveform from './Waveform';
 import TranscriptionLog from './TranscriptionLog';
 
 /**
  * Main assistant interaction view with voice and text chat
  * @param {Object} props - Component props
- * @param {Object} props.settingsRef - Reference to current settings
- * @param {Object} props.jobActions - Job management action functions
+ * @param {Function} props.onSyncGmail - Gmail sync handler
  * @param {Array} props.messages - Persisted chat messages from parent
  * @param {Function} props.setMessages - Chat messages updater from parent
  */
-function AssistantView({ settingsRef, jobActions, messages, setMessages }) {
+function AssistantView({ onSyncGmail, messages, setMessages }) {
   const [textInput, setTextInput] = useState('');
   const [isTextThinking, setIsTextThinking] = useState(false);
   const [error, setError] = useState(null);
 
+  const { settingsRef } = useSettings();
   const {
     saveJobApplication,
     deleteJobApplication,
     updateJobApplication,
     listJobs,
-    findJobByCompany,
-    onSyncGmail
-  } = jobActions;
+    findJobByCompany
+  } = useJobs();
 
   // Handle tool calls from voice or text
   const handleToolCall = useCallback(

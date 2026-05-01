@@ -15,15 +15,17 @@ import {
 } from 'lucide-react';
 import { analyzeResume } from '@/services';
 
+import { useSettings, useToast } from '@/contexts';
+
 // Initialize PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 /**
  * Resume validation and analysis component
- * @param {Object} props - Component props
- * @param {Object} props.settings - App settings with API key
  */
-function ResumeValidator({ settings }) {
+function ResumeValidator() {
+  const { settings } = useSettings();
+  const { showToast } = useToast();
   const [inputMode, setInputMode] = useState('text');
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -54,13 +56,21 @@ function ResumeValidator({ settings }) {
       }
 
       if (!fullText.trim()) {
-        throw new Error(
-          'Could not extract any text from this PDF. It might be an image-only scan.'
-        );
-      }
+        let binary = '';
+        const bytes = new Uint8Array(arrayBuffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64Pdf = window.btoa(binary);
 
-      setResumeText(fullText);
-      setFileName(file.name);
+        setResumeText({ inlineData: { data: base64Pdf, mimeType: 'application/pdf' } });
+        setFileName(file.name);
+        showToast('PDF appears to be an image. Astra will analyze it using its vision model.', 'success');
+      } else {
+        setResumeText(fullText);
+        setFileName(file.name);
+      }
     } catch (err) {
       console.error(err);
       setError(
@@ -157,9 +167,9 @@ function ResumeValidator({ settings }) {
 
             {inputMode === 'text' ? (
               <textarea
-                value={resumeText}
+                value={typeof resumeText === 'string' ? resumeText : ''}
                 onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste your resume..."
+                placeholder={typeof resumeText === 'string' ? "Paste your resume..." : "Resume is loaded as a PDF document. Switch to PDF tab to remove."}
                 className="flex-1 min-h-[200px] md:min-h-[300px] glass rounded-2xl p-4 bg-white/5 border border-white/10 focus:border-violet-500 outline-none text-sm resize-none transition-all placeholder:text-gray-600"
               />
             ) : (
