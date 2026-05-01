@@ -288,63 +288,6 @@ export async function analyzeResume(resumeText, jobDescription, settings = {}) {
   return JSON.parse(response.text || '{}');
 }
 
-/**
- * Decodes base64url string to text
- * @param {string} data - Base64url encoded string
- * @returns {string} - Decoded text
- */
-function decodeBase64Url(data) {
-  if (!data) return '';
-  // Convert from base64url to base64
-  let base64 = data.replace(/-/g, '+').replace(/_/g, '/');
-  // Add padding if needed
-  while (base64.length % 4) {
-    base64 += '=';
-  }
-
-  try {
-    // Decode base64 to text, handling UTF-8
-    return decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-  } catch (e) {
-    console.warn('Failed to decode email body part', e);
-    return '';
-  }
-}
-
-/**
- * Recursively extracts email body from payload
- * @param {Object} payload - Email payload
- * @returns {string} - Extracted body text
- */
-function extractEmailBody(payload) {
-  if (!payload) return '';
-
-  // 1. Direct body data
-  if (payload.body?.data) {
-    return decodeBase64Url(payload.body.data);
-  }
-
-  // 2. Multipart
-  if (payload.parts) {
-    for (const part of payload.parts) {
-      if (part.body?.data && (part.mimeType === 'text/plain' || part.mimeType === 'text/html')) {
-        return decodeBase64Url(part.body.data);
-      }
-
-      if (part.parts) {
-        const result = extractEmailBody(part);
-        if (result) return result;
-      }
-    }
-  }
-
-  return '';
-}
 
 /**
  * Exchanges an authorization code for access and refresh tokens

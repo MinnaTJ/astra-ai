@@ -105,7 +105,7 @@ function AssistantView({ settingsRef, jobActions, messages, setMessages }) {
         }
       ]);
     }
-  }, []);
+  }, [setMessages]);
 
   // Handle errors
   const handleError = useCallback((errorMessage) => {
