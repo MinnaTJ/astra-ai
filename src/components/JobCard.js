@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, Link2, Trash2, Edit2, Mail, StickyNote } from 'lucide-react';
+import { useConfirm } from '@/contexts';
 import StatusIcon from './StatusIcon';
 
 /**
@@ -10,6 +11,8 @@ import StatusIcon from './StatusIcon';
  * @param {Function} props.onDelete - Delete handler
  */
 function JobCard({ job, onEdit, onDelete, timezone }) {
+  const { confirm } = useConfirm();
+  
   const getStatusStyle = (status) => {
     switch (status) {
       case 'Offer':
@@ -63,8 +66,14 @@ function JobCard({ job, onEdit, onDelete, timezone }) {
             <Edit2 size={18} />
           </button>
           <button
-            onClick={() => {
-              if (window.confirm(`Delete application for ${job.role} at ${job.company}?`)) {
+            onClick={async () => {
+              const isConfirmed = await confirm({
+                title: 'Delete Application',
+                message: `Delete application for ${job.role} at ${job.company}?`,
+                confirmText: 'Delete',
+                isDestructive: true
+              });
+              if (isConfirmed) {
                 onDelete(job.id);
               }
             }}

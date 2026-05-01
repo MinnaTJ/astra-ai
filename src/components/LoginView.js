@@ -1,14 +1,16 @@
 import { Mail, Loader2, Sparkles, Briefcase, BarChart3, Search } from 'lucide-react';
 import { useGmailOAuth } from '@/hooks';
+import { useToast } from '@/contexts';
 
 /**
  * Login View Component
  * Provides a premium-looking landing page with Login with Gmail capability
  */
 function LoginView({ onLoginSuccess }) {
+    const { showToast } = useToast();
     const { startOAuth, isConnecting } = useGmailOAuth({
         onSuccess: onLoginSuccess,
-        onError: (msg) => alert(msg)
+        onError: (msg) => showToast(msg, 'error')
     });
 
     return (
