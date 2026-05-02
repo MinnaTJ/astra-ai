@@ -11,7 +11,7 @@ import {
 import { AssistantState } from '@/constants';
 import { sendTextMessage } from '@/services';
 import { useVoiceSession } from '@/hooks';
-import { useJobs, useSettings } from '@/contexts';
+import { useJobs, useSettings, useToast } from '@/contexts';
 import Waveform from './Waveform';
 import TranscriptionLog from './TranscriptionLog';
 
@@ -28,6 +28,7 @@ function AssistantView({ onSyncGmail, messages, setMessages }) {
   const [error, setError] = useState(null);
 
   const { settingsRef } = useSettings();
+  const { showToast } = useToast();
   const {
     saveJobApplication,
     deleteJobApplication,
@@ -57,6 +58,7 @@ function AssistantView({ onSyncGmail, messages, setMessages }) {
           : `Could not find a job for ${fc.args.company}.`;
         mutated = true;
       } else if (fc.name === 'sync_gmail_emails') {
+        showToast('Syncing Gmail...', 'info');
         // Add immediate feedback message so user knows the long sync process started
         setMessages((prev) => [
           ...prev,
@@ -69,6 +71,7 @@ function AssistantView({ onSyncGmail, messages, setMessages }) {
         ]);
         // Await the full sync so we can report results back to the AI
         result = await onSyncGmail();
+        showToast('Gmail sync complete!', 'success');
         mutated = true;
       }
       
@@ -78,7 +81,7 @@ function AssistantView({ onSyncGmail, messages, setMessages }) {
       }
       return result;
     },
-    [saveJobApplication, deleteJobApplication, updateJobApplication, listJobs, findJobByCompany, onSyncGmail, setMessages]
+    [saveJobApplication, deleteJobApplication, updateJobApplication, listJobs, findJobByCompany, onSyncGmail, setMessages, showToast]
   );
 
   // Handle voice messages

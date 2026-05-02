@@ -336,6 +336,7 @@ export async function syncGmailEmails(settings, applications) {
     
     INSTRUCTIONS:
     1. For each email, identify the company, role, status, and application date/time.
+    - Important Status Mapping: If the email snippet indicates "role has been filled", "moving forward with other candidates", "not selected", "thank you for your time/interest" (in a rejection context), "we're sorry to let you know", or "unfortunately", you MUST set the status to "Rejected".
     2. ALWAYS include an 'emailLink' property in your tool calls if extracting from a Gmail email.
     3. The 'emailLink' should be formatted as: https://mail.google.com/mail/u/0/#inbox/[message_id]
        where [message_id] is the 'id' field from the email object.
@@ -344,7 +345,7 @@ export async function syncGmailEmails(settings, applications) {
     If there is duplicate email discard the older one.
 
     Also make sure its an applied job that we are considering not any suggestions or other emails.
-    check the subject line and snippet of the email to make sure its an applied job.
+    check the subject line and snippet of the email to make sure its an applied job or an update to an applied job (like a rejection or interview invite).
 
     Sometime LinkedIn will send a suggestion email for a job that we have already applied for.
     Make sure to not consider those emails.
