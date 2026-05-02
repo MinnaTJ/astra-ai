@@ -247,9 +247,18 @@ function AssistantView({ onSyncGmail, messages, setMessages }) {
               ) : (
                 <button
                   onClick={stopSession}
-                  className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center transition-all active:scale-95"
+                  className={`w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+                    state === AssistantState.LISTENING
+                      ? 'bg-emerald-500 hover:bg-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.5)]'
+                      : 'bg-red-500 hover:bg-red-400 shadow-lg'
+                  }`}
+                  title={state === AssistantState.LISTENING ? "Stop recording" : "Stop session"}
                 >
-                  <MicOff size={20} className="md:size-[24px] text-white" />
+                  {state === AssistantState.LISTENING ? (
+                    <Mic size={20} className="md:size-[24px] text-white animate-pulse" />
+                  ) : (
+                    <MicOff size={20} className="md:size-[24px] text-white" />
+                  )}
                 </button>
               )}
             </div>
