@@ -13,8 +13,8 @@ function renderMarkdown(text) {
   // Split by newlines first, then process inline formatting
   return text.split('\n').map((line, lineIdx, lines) => {
     const parts = [];
-    // Match **bold**, __bold__, *italic*, _italic_
-    const regex = /(\*\*(.*?)\*\*|__(.*?)__|(?<!\*)\*(?!\*)(.*?)\*(?!\*)|(?<!_)_(?!_)(.*?)_(?!_))/g;
+    // Match **bold**, __bold__, [link](url), raw urls, *italic*, _italic_
+    const regex = /(\*\*(.*?)\*\*|__(.*?)__|\[(.*?)\]\((.*?)\)|(https?:\/\/[^\s]+)|(?<!\*)\*(?!\*)(.*?)\*(?!\*)|(?<!_)_(?!_)(.*?)_(?!_))/g;
     let lastIndex = 0;
     let match;
 
@@ -25,17 +25,25 @@ function renderMarkdown(text) {
       }
 
       if (match[2] !== undefined) {
-        // **bold**
         parts.push(<strong key={`b-${lineIdx}-${match.index}`}>{match[2]}</strong>);
       } else if (match[3] !== undefined) {
-        // __bold__
         parts.push(<strong key={`b-${lineIdx}-${match.index}`}>{match[3]}</strong>);
-      } else if (match[4] !== undefined) {
-        // *italic*
-        parts.push(<em key={`i-${lineIdx}-${match.index}`}>{match[4]}</em>);
-      } else if (match[5] !== undefined) {
-        // _italic_
-        parts.push(<em key={`i-${lineIdx}-${match.index}`}>{match[5]}</em>);
+      } else if (match[4] !== undefined && match[5] !== undefined) {
+        parts.push(
+          <a key={`l-${lineIdx}-${match.index}`} href={match[5]} target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 hover:underline underline-offset-2">
+            {match[4]}
+          </a>
+        );
+      } else if (match[6] !== undefined) {
+        parts.push(
+          <a key={`url-${lineIdx}-${match.index}`} href={match[6]} target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:text-violet-300 hover:underline underline-offset-2">
+            {match[6]}
+          </a>
+        );
+      } else if (match[7] !== undefined) {
+        parts.push(<em key={`i-${lineIdx}-${match.index}`}>{match[7]}</em>);
+      } else if (match[8] !== undefined) {
+        parts.push(<em key={`i-${lineIdx}-${match.index}`}>{match[8]}</em>);
       }
 
       lastIndex = match.index + match[0].length;
@@ -97,15 +105,22 @@ function TranscriptionLog({ messages, isThinking }) {
             </div>
           )}
 
-          <div
-            className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${msg.role === 'user'
-                ? 'bg-blue-600 text-white rounded-tr-none'
-                : 'bg-white/10 text-gray-100 border border-white/5 rounded-tl-none'
-              }`}
-          >
-            <p className="leading-relaxed">
-              {renderMarkdown(msg.text)}
-            </p>
+          <div className={`flex flex-col gap-1 max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div
+              className={`rounded-2xl px-4 py-2 text-sm ${msg.role === 'user'
+                  ? 'bg-blue-600 text-white rounded-tr-none'
+                  : 'bg-white/10 text-gray-100 border border-white/5 rounded-tl-none'
+                }`}
+            >
+              <p className="leading-relaxed break-words whitespace-pre-wrap">
+                {renderMarkdown(msg.text)}
+              </p>
+            </div>
+            {msg.timestamp && (
+              <span className="text-[10px] text-gray-500 px-1">
+                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
           </div>
 
           {msg.role === 'user' && (

@@ -6,7 +6,9 @@ import {
   AlertCircle,
   X,
   Send,
-  Loader2
+  Loader2,
+  MessageSquareText,
+  Trash2
 } from 'lucide-react';
 import { AssistantState } from '@/constants';
 import { sendTextMessage } from '@/services';
@@ -26,6 +28,7 @@ function AssistantView({ onSyncGmail, messages, setMessages }) {
   const [textInput, setTextInput] = useState('');
   const [isTextThinking, setIsTextThinking] = useState(false);
   const [error, setError] = useState(null);
+  const [isLogOpen, setIsLogOpen] = useState(false);
 
   const { settingsRef } = useSettings();
   const { showToast } = useToast();
@@ -172,7 +175,7 @@ function AssistantView({ onSyncGmail, messages, setMessages }) {
   const settings = settingsRef.current;
 
   return (
-    <section className="flex-1 flex flex-col md:flex-row h-full overflow-hidden animate-in fade-in duration-300">
+    <section className="flex-1 flex flex-col md:flex-row h-full overflow-hidden animate-in fade-in duration-300 relative">
       {/* Interaction Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative">
         <div className="z-10 text-center max-w-md w-full flex-1 flex flex-col justify-center">
@@ -285,18 +288,57 @@ function AssistantView({ onSyncGmail, messages, setMessages }) {
         </div>
       </div>
 
-      {/* Sidebar Log */}
-      <aside className="w-full md:w-96 glass border-l border-white/5 flex flex-col h-1/3 md:h-full">
-        <div className="p-3 md:p-4 border-b border-white/5 flex items-center justify-between">
-          <h3 className="text-sm md:text-base font-medium text-gray-300">Activity Log</h3>
-          <button
-            onClick={() => setMessages([])}
-            className="p-1.5 hover:bg-white/5 rounded text-gray-500"
-          >
-            <X size={14} className="md:size-[16px]" />
-          </button>
+      {/* Drawer Toggle Button */}
+      <button
+        onClick={() => setIsLogOpen(true)}
+        className={`absolute top-4 right-4 md:top-6 md:right-6 z-30 bg-gray-800/80 backdrop-blur-md border border-white/10 rounded-full p-3 text-gray-400 hover:text-white shadow-lg hover:bg-gray-700 transition-all hover:scale-105 ${isLogOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        title="View Activity Log"
+      >
+        <div className="relative">
+          <MessageSquareText size={20} />
+          {messages.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-violet-500 rounded-full border-2 border-gray-900"></span>
+          )}
         </div>
-        <div className="flex-1 p-3 md:p-4 overflow-hidden flex flex-col">
+      </button>
+
+      {/* Backdrop overlay */}
+      {isLogOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
+          onClick={() => setIsLogOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Log Drawer */}
+      <aside 
+        className={`fixed top-0 right-0 h-full w-full sm:w-[400px] glass border-l border-white/10 flex flex-col z-50 transform transition-transform duration-300 ease-in-out shadow-2xl ${
+          isLogOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="p-4 border-b border-white/10 flex items-center justify-between bg-gray-900/50">
+          <div className="flex items-center gap-2">
+            <MessageSquareText size={18} className="text-violet-400" />
+            <h3 className="text-base font-semibold text-white">Activity Log</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMessages([])}
+              className="p-2 hover:bg-red-500/10 hover:text-red-400 rounded-lg text-gray-500 transition-colors"
+              title="Clear Log"
+            >
+              <Trash2 size={16} />
+            </button>
+            <button
+              onClick={() => setIsLogOpen(false)}
+              className="p-2 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
+              title="Close"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 p-4 overflow-hidden flex flex-col bg-gray-900/20">
           {/* Transcription Log */}
           <TranscriptionLog
             messages={messages}
